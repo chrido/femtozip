@@ -20,6 +20,7 @@ java/jnifzip/libtool
 java/jnifzip/src/.deps/
 java/jnifzip/src/Makefile
 java/jnifzip/stamp-h1
+java/jnifzip/src/.libs/
 
 #cpp results
 cpp/fzdatagen/src/fzdatagen
