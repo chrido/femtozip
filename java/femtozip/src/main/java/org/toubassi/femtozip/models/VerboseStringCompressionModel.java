@@ -19,7 +19,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
@@ -29,37 +32,32 @@ public class VerboseStringCompressionModel extends CompressionModel {
         buildDictionaryIfUnspecified(documents);
     }
 
-    public void compress(byte[] data, OutputStream out) throws IOException {
+    public void compress(ByteBuf data, OutputStream out) throws IOException {
         getSubstringPacker().pack(data, this, new PrintWriter(out));
     }
 
-    public byte[] decompress(byte[] compressedData) {
-        try {
-            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
-            String source = new String(compressedData, "UTF-8");
-            for (int i = 0, count = source.length(); i < count; i++) {
-                char ch = source.charAt(i);
-                if (ch == '<') {
-                    int rightAngleIndex = source.indexOf('>', i);
-                    String substring = source.substring(i + 1, rightAngleIndex);
-                    String[] parts = substring.split(",");
-                    int offset = Integer.parseInt(parts[0]);
-                    int length = Integer.parseInt(parts[1]);
-                    
-                    unpacker.encodeSubstring(offset, length, null);
-                    // Skip past this in the outer loop
-                    i = rightAngleIndex;
-                }
-                else {
-                    unpacker.encodeLiteral((int)ch, null);
-                }
+    public ByteBuf decompress(ByteBuf compressedData) {
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+
+        String source = compressedData.toString(Charset.forName("UTF-8"));
+        for (int i = 0, count = source.length(); i < count; i++) {
+            char ch = source.charAt(i);
+            if (ch == '<') {
+                int rightAngleIndex = source.indexOf('>', i);
+                String substring = source.substring(i + 1, rightAngleIndex);
+                String[] parts = substring.split(",");
+                int offset = Integer.parseInt(parts[0]);
+                int length = Integer.parseInt(parts[1]);
+
+                unpacker.encodeSubstring(offset, length, null);
+                // Skip past this in the outer loop
+                i = rightAngleIndex;
+            } else {
+                unpacker.encodeLiteral((int) ch, null);
             }
-            unpacker.endEncoding(null);
-            return unpacker.getUnpackedBytes();
         }
-        catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        unpacker.endEncoding(null);
+        return unpacker.getUnpackedBytes();
     }
 
     public void encodeLiteral(int aByte, Object context) {

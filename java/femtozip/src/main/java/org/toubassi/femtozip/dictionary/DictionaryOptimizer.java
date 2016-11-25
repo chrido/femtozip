@@ -22,31 +22,43 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.DocumentList;
 
 
 public class DictionaryOptimizer {
 
+    private final PooledByteBufAllocator arena;
     private SubstringArray substrings;
-    private byte[] bytes;
+    private ByteBuf bytes;
     private int[] suffixArray;
     private int[] lcp;
     private int[] starts;
     
-    public DictionaryOptimizer(DocumentList documents) throws IOException {
-        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-        starts = new int[documents.size()];
-        
-        for (int i = 0, count = documents.size(); i < count; i++) {
-            byte[] document = documents.get(i);
-            starts[i] = bytesOut.size();
-            bytesOut.write(document);
+    public DictionaryOptimizer(DocumentList documents, PooledByteBufAllocator arena) throws IOException {
+        this.arena = arena;
+        bytes = arena.directBuffer();
+        try(ByteBufOutputStream bytesOut = new ByteBufOutputStream(bytes)) {  //TODO: Pooling
+            starts = new int[documents.size()];
+
+            for (int i = 0, count = documents.size(); i < count; i++) {
+                ByteBuf document = documents.get(i);
+                starts[i] = bytesOut.writtenBytes();
+                document.readBytes(bytesOut, document.readableBytes());
+                document.resetReaderIndex();
+            }
         }
-        
-        bytes = bytesOut.toByteArray();
+        int temp = bytes.refCnt();
     }
-    
-    public byte[] optimize(int desiredLength) {
+
+    public DictionaryOptimizer(DocumentList documents) throws IOException {
+        this(documents, PooledByteBufAllocator.DEFAULT);
+    }
+
+    public ByteBuf optimize(int desiredLength) {
         suffixArray = SuffixArray.computeSuffixArray(bytes);
         lcp = SuffixArray.computeLCP(bytes, suffixArray);
         computeSubstrings();
@@ -56,7 +68,7 @@ public class DictionaryOptimizer {
     // TODO Bring this up to parity with C++ version, which has optimized
     protected void computeSubstrings() {
         SubstringArray activeSubstrings = new SubstringArray(128);
-        Set<Integer> uniqueDocIds = new HashSet<Integer>();
+        Set<Integer> uniqueDocIds = new HashSet<>();
         
         substrings = new SubstringArray(1024);
         int n = lcp.length;
@@ -108,7 +120,7 @@ public class DictionaryOptimizer {
                             // "http://espn.com", "http://google.com", "http://yahoo.com", we don't want to consider
                             // ".comhttp://" to be a legal string.  So make sure the length of this string doesn't
                             // cross a document boundary for this particular occurrence.
-                            int nextDocStart = docIndex < starts.length - 1 ? starts[docIndex + 1] : bytes.length;
+                            int nextDocStart = docIndex < starts.length - 1 ? starts[docIndex + 1] : bytes.readableBytes();
                             if (activeLength <= nextDocStart - byteIndex) {
                                 uniqueDocIds.add(docIndex);
                             }
@@ -150,7 +162,7 @@ public class DictionaryOptimizer {
         substrings.sort();
     }
     
-    protected byte[] pack(int desiredLength) {
+    protected ByteBuf pack(int desiredLength) {
         SubstringArray pruned = new SubstringArray(1024);
         int size = 0;
         
@@ -182,7 +194,7 @@ public class DictionaryOptimizer {
             }
         }
 
-        byte[] packed = new byte[desiredLength];
+        ByteBuf packed = arena.buffer(desiredLength, desiredLength);
         int pi = desiredLength;
         
         int i, count;
@@ -191,34 +203,46 @@ public class DictionaryOptimizer {
             if (pi - length < 0) {
                 length = pi;
             }
-            pi -= prepend(bytes, suffixArray[pruned.index(i)], packed, pi, length);
+            pi -= prepend(bytes, suffixArray[pruned.index(i)], packed, pi, length, desiredLength);
         }
         
         if (pi > 0) {
-            packed = Arrays.copyOfRange(packed, pi, packed.length);
+            ByteBuf slice = packed.slice(pi, desiredLength - pi);
+            //packed.release();
+            packed = slice;
         }
         
         return packed;
     }
     
-    protected int prepend(byte[] from, int fromIndex, byte[] to, int toIndex, int length) {
+    protected int prepend(ByteBuf from, int fromIndex, ByteBuf to, int toIndex, int length, int desiredLength) {
         int l;
         // See if we have a common suffix/prefix between the string being merged in, and the current strings in the front
         // of the destination.  For example if we pack " the " and then pack " and ", we should end up with " and the ", not " and  the ".
-        for (l = Math.min(length - 1, to.length - toIndex); l > 0; l--) {
+        int toreadablebytes = to.readableBytes();
+        for (l = Math.min(length - 1, desiredLength - toIndex); l > 0; l--) {
             if (byteRangeEquals(from, fromIndex + length - l, to, toIndex, l)) {
                 break;
             }
         }
-        
-        System.arraycopy(from, fromIndex, to, toIndex - length + l, length - l);
+        //TODO
+        int copyLength = Math.min(from.readableBytes(), length-l); //length does not correspond to the bufferlength
+        ByteBuf fromSlice = from.slice(fromIndex, copyLength);
+
+        int toStartIndex = toIndex - length + l;
+        to.setBytes(toStartIndex, fromSlice);
+
+        int endOfWritten = toStartIndex + copyLength;
+
+        //System.arraycopy(from, fromIndex, to, toIndex - length + l, length - l);
+        //public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length)
         return length - l;
     }
     
-    private static boolean byteRangeEquals(byte[] bytes1, int index1, byte[] bytes2, int index2, int length) {
+    private static boolean byteRangeEquals(ByteBuf bytes1, int index1, ByteBuf bytes2, int index2, int length) {
         
         for (;length > 0; length--, index1++, index2++) {
-            if (bytes1[index1] != bytes2[index2]) {
+            if (bytes1.getByte(index1) != bytes2.getByte(index2)) {
                 return false;
             }
         }
@@ -233,10 +257,11 @@ public class DictionaryOptimizer {
         return substrings.score(i);
     }
     
-    public byte[] getSubstringBytes(int i) {
+    public ByteBuf getSubstringBytes(int i) {
         int index = suffixArray[substrings.index(i)];
         int length = substrings.length(i);
-        return Arrays.copyOfRange(bytes, index, index + length);
+        return bytes.slice(index, length);
+        //return Arrays.copyOfRange(bytes, index, index + length); //TODO: remove, this was bevore
     }
     
     /**
@@ -246,7 +271,7 @@ public class DictionaryOptimizer {
         for (int i = 0; i < suffixArray.length; i++) {
             out.print(suffixArray[i] + "\t");
             out.print(lcp[i] + "\t");
-            out.write(bytes, suffixArray[i], Math.min(40, bytes.length - suffixArray[i]));
+            out.write(bytes.array(), suffixArray[i], Math.min(40, bytes.readableBytes() - suffixArray[i]));
             out.println();
         }
     }
@@ -258,7 +283,7 @@ public class DictionaryOptimizer {
         if (substrings != null) {
             for (int j = substrings.size() - 1; j >= 0; j--) {
                 out.print(substrings.score(j) + "\t");
-                out.write(bytes, suffixArray[substrings.index(j)], Math.min(40, substrings.length(j)));
+                out.write(bytes.array(), suffixArray[substrings.index(j)], Math.min(40, substrings.length(j)));
                 out.println();
             }
         }

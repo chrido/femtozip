@@ -18,21 +18,40 @@ package org.toubassi.femtozip.coding.huffman;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class HuffmanEncoder {
-    private BitOutput bitOut;
-    private HuffmanModel model;
+public class BitOutputOutputStreamImpl implements BitOutput {
     
-    public HuffmanEncoder(HuffmanModel model, BitOutput out) {
-        this.bitOut = out;
-        this.model = model;
+    private OutputStream out;
+    private int buffer;
+    private int count;
+    
+    public BitOutputOutputStreamImpl(OutputStream output) {
+        out = output;
     }
-    
-    public void encodeSymbol(int symbol) throws IOException {
-        model.encode(symbol).write(bitOut);
+
+    @Override
+    public void writeBit(int bit) throws IOException  {
+        if (bit > 0) {
+            buffer |= (1 << count);
+        }
+        count++;
+        if (count == 8) {
+            out.write(buffer);
+            buffer = 0;
+            count = 0;
+        }
+    }
+
+    @Override
+    public void flush() throws IOException {
+        if (count > 0) {
+            out.write(buffer);
+            buffer = 0;
+            count = 0;
+        }
     }
     
     public void close() throws IOException {
-        model.getCodewordForEOF().write(bitOut);//EOF
-        bitOut.flush();
+        flush();
+        out.close();
     }
 }

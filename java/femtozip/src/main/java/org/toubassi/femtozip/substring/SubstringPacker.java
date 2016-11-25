@@ -16,10 +16,14 @@
 package org.toubassi.femtozip.substring;
 
 
+import io.netty.buffer.ByteBuf;
+
+import static io.netty.buffer.Unpooled.buffer;
+
 public class SubstringPacker {
     private static final int MinimumMatchLength = PrefixHash.PrefixLength;
     
-    private byte[] dictionary;
+    private ByteBuf dictionary;
     private PrefixHash dictHash;
     
     public interface Consumer {
@@ -28,20 +32,21 @@ public class SubstringPacker {
         public void endEncoding(Object context);
     }
     
-    public SubstringPacker(byte[] dictionary) {
-        this.dictionary = dictionary = dictionary == null ? new byte[0] : dictionary;
+    public SubstringPacker(ByteBuf dictionary) {
+        this.dictionary = dictionary = dictionary == null ? buffer(0) : dictionary;
         dictHash = new PrefixHash(dictionary, true);
     }
     
-    public void pack(byte[] rawBytes, SubstringPacker.Consumer consumer, Object consumerContext) {
+    public void pack(ByteBuf rawBytes, SubstringPacker.Consumer consumer, Object consumerContext) {
         PrefixHash hash = new PrefixHash(rawBytes, false);
-        int dictLen = dictionary.length;
+        int dictLen = dictionary.readableBytes();
 
         int previousMatchIndex = 0;
         int previousMatchLength = 0;
         
         int curr, count;
-        for (curr = 0, count = rawBytes.length; curr < count; curr++) {
+        int rawBytesLength = rawBytes.readableBytes();
+        for (curr = 0, count = rawBytesLength; curr < count; curr++) {
             int bestMatchIndex = 0;
             int bestMatchLength = 0;
             
@@ -85,7 +90,7 @@ public class SubstringPacker {
                 // We have a match, and we had a previous match, and this one is better.
                 previousMatchIndex = bestMatchIndex;
                 previousMatchLength = bestMatchLength;
-                consumer.encodeLiteral(((int)rawBytes[curr - 1]) & 0xff, consumerContext);
+                consumer.encodeLiteral(((int)rawBytes.getByte(curr - 1)) & 0xff, consumerContext);
             }
             else if (bestMatchLength > 0) {
                 // We have a match, but no previous match
@@ -94,7 +99,7 @@ public class SubstringPacker {
             }
             else if (bestMatchLength == 0 && previousMatchLength == 0) {
                 // No match, and no previous match.
-                consumer.encodeLiteral(((int)rawBytes[curr]) & 0xff, consumerContext);
+                consumer.encodeLiteral(((int)rawBytes.getByte(curr)) & 0xff, consumerContext);
             }
         }
         consumer.endEncoding(consumerContext);

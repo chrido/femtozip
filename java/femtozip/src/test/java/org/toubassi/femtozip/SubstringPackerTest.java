@@ -16,7 +16,10 @@
 package org.toubassi.femtozip;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.junit.Assert;
 import org.junit.Test;
 import org.toubassi.femtozip.models.VerboseStringCompressionModel;
@@ -87,21 +90,25 @@ public class SubstringPackerTest {
 
     private String pack(String s, String dict) {
         try {
-            byte[] bytes = s.getBytes("UTF-8");
-            byte[] dictBytes = dict == null ? null : dict.getBytes("UTF-8");
+            ByteBuf bytes = Unpooled.wrappedBuffer(s.getBytes("UTF-8"));
+            ByteBuf dictBytes = dict == null ? null : Unpooled.wrappedBuffer(dict.getBytes("UTF-8"));
             
             VerboseStringCompressionModel model = new VerboseStringCompressionModel();
             model.setDictionary(dictBytes);
-            byte[] compressed = model.compress(bytes);
-            byte[] decompressed = model.decompress(compressed);
-            
-            Assert.assertEquals("Compressed: " + (new String(compressed, "UTF-8")), s, new String(decompressed, "UTF-8"));
-            
-            return new String(compressed, "UTF-8");
+
+            ByteBuf compressed = model.compress(bytes);
+            ByteBuf decompressed = model.decompress(compressed);
+
+            Assert.assertEquals("Compressed: " + getReadable(compressed), s, getReadable(decompressed));
+
+            return getReadable(compressed);//compressed.toString(Charset.forName("UTF-8"));
         }
         catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }
 
+    private String getReadable(ByteBuf bb) {
+        return bb.toString(Charset.forName("UTF-8"));
+    }
 }

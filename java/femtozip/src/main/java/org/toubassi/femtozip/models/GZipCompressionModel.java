@@ -15,6 +15,8 @@
  */
 package org.toubassi.femtozip.models;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -30,7 +32,7 @@ public class GZipCompressionModel extends GZipDictionaryCompressionModel {
         // Nothing to save.  We override so the base class doesn't save the dictionary
     }
 
-    public void compress(byte[] data, OutputStream out) throws IOException {
+    public void compress(ByteBuf data, OutputStream out) throws IOException {
         compress(out, null, data); 
     }
 }

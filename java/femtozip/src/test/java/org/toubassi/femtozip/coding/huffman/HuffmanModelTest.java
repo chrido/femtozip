@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import junit.framework.Assert;
 
 import org.junit.Test;
@@ -35,10 +37,10 @@ public class HuffmanModelTest {
     }
     
     public void testString(String string, boolean allSymbolsSampled) throws IOException {
-        byte[] dataBytes = string.getBytes("UTF-8");
-        int[] data = new int[dataBytes.length];
-        for (int i = 0, count = dataBytes.length; i < count; i++) {
-            data[i] = ((int)dataBytes[i]) & 0xff;
+        ByteBuf dataBytes = Unpooled.wrappedBuffer(string.getBytes("UTF-8"));
+        int[] data = new int[dataBytes.readableBytes()];
+        for (int i = 0, count = dataBytes.readableBytes(); i < count; i++) {
+            data[i] = ((int)dataBytes.getByte(i)) & 0xff;
         }
         int[] histogram = FrequencyHuffmanModel.computeHistogramWithEOFSymbol(dataBytes);
         
@@ -49,13 +51,13 @@ public class HuffmanModelTest {
 
     private void testDataWithModel(int[] data, FrequencyHuffmanModel model) throws IOException {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-        HuffmanEncoder encoder = new HuffmanEncoder(model, bytesOut);
+        HuffmanEncoder encoder = new HuffmanEncoder(model, new BitOutputOutputStreamImpl(bytesOut));
         
         for (int i = 0, count = data.length; i < count; i++) {
             encoder.encodeSymbol(data[i]);
         }
         encoder.close();
-        
+
         byte[] compressedBytes = bytesOut.toByteArray();
         HuffmanDecoder decoder = new HuffmanDecoder(model, new ByteArrayInputStream(compressedBytes));
         ArrayList<Integer> decompressed = new ArrayList<Integer>();

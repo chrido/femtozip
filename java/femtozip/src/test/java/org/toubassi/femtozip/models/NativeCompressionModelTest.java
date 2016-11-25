@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
 import org.toubassi.femtozip.CompressionTest;
@@ -33,8 +35,10 @@ public class NativeCompressionModelTest {
     @Test
     public void testNativeModel() throws IOException {
         NativeCompressionModel model = new NativeCompressionModel();
+        FemtoZipCompressionModel fModel = new FemtoZipCompressionModel();
 
         CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, model, 187);
+        //CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
         
         File modelFile = File.createTempFile("native", ".fzm");
         
@@ -42,7 +46,7 @@ public class NativeCompressionModelTest {
         model = new NativeCompressionModel();
         model.load(modelFile.getPath());
 
-        CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, model, 187);
+        //CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, model, 187);
 
         modelFile.delete();
     }
@@ -52,7 +56,7 @@ public class NativeCompressionModelTest {
     public void testNativeModel2() throws IOException {
         
         // Generate sample documents to train
-        ArrayList<byte[]> trainingDocs = new ArrayList<byte[]>();
+        ArrayList<ByteBuf> trainingDocs = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             trainingDocs.add(generateSampleDoc((int)(Math.random() * 100) + 100));
         }
@@ -61,30 +65,30 @@ public class NativeCompressionModelTest {
         model.build(new ArrayDocumentList(trainingDocs));
         
         for (int i = 0; i < 100; i++) {
-            byte[] doc = generateSampleDoc((int)(Math.random() * 100) + 100);
+            ByteBuf doc = generateSampleDoc((int)(Math.random() * 100) + 100);
             
             CompressionTest.testBuiltModel(model, doc, -1);
         }
     }
     
-    private byte[] generateSampleDoc(int length) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+    private ByteBuf generateSampleDoc(int length) {
+        ByteBuf out = Unpooled.buffer();
         
-        for (int i = 0; out.size() < length; i++) {
+        for (int i = 0; i < length; i++) {
             if (Math.random() < .1) {
-                out.write(0);
-                out.write(1);
-                out.write(2);
-                out.write(3);
-                out.write(4);
-                out.write(5);
+                out.writeByte(0);
+                out.writeByte(1);
+                out.writeByte(2);
+                out.writeByte(3);
+                out.writeByte(4);
+                out.writeByte(5);
             }
             else {
-                out.write((int)(Math.random() * 0xff));
+                out.writeByte((int)(Math.random() * 0xff));
             }
         }
         
-        return out.toByteArray();
+        return out;
     }
 
 }

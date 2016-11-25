@@ -15,6 +15,9 @@
  */
 package org.toubassi.femtozip.util;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -52,10 +55,10 @@ public class FileUtil {
         return status && file.delete();
     }
     
-    public static byte[] readFile(File file) throws IOException {
+    public static ByteBuf readFile(File file) throws IOException {
         FileInputStream in = new FileInputStream(file);
         // No need to buffer as StreamUtil.readAll will read in big chunks
-        return StreamUtil.readAll(in);
+        return Unpooled.wrappedBuffer(StreamUtil.readAll(in));
     }
 
     public static byte[] readFile(String path) throws IOException {

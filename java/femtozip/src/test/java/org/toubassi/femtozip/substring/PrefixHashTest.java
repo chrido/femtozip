@@ -17,6 +17,8 @@ package org.toubassi.femtozip.substring;
 
 import java.io.IOException;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import junit.framework.Assert;
 
 import org.junit.Test;
@@ -28,7 +30,7 @@ public class PrefixHashTest {
     @Test
     public void testPrefixHash() throws IOException {
         String str = "a man a clan a canal panama";
-        byte[] bytes = str.getBytes("UTF-8");
+        ByteBuf bytes = Unpooled.copiedBuffer(str.getBytes("UTF-8"));
         
         PrefixHash hash = new PrefixHash(bytes, false);
         for (int i = 0; i < 12; i++) {
@@ -44,12 +46,12 @@ public class PrefixHashTest {
     @Test
     public void testPrefixHashWithTargetBuf() throws IOException {
         String str = "a man a clan a canal panama";
-        byte[] bytes = str.getBytes("UTF-8");
+        ByteBuf bytes = Unpooled.wrappedBuffer(str.getBytes("UTF-8"));
         
         PrefixHash hash = new PrefixHash(bytes, true);        
         
         String target = "xxx a ca";
-        byte[] targetBytes = target.getBytes("UTF-8");        
+        ByteBuf targetBytes = Unpooled.wrappedBuffer(target.getBytes("UTF-8"));
         Match match = hash.getBestMatch(3, targetBytes);
         
         Assert.assertEquals(12, match.bestMatchIndex);
@@ -59,12 +61,12 @@ public class PrefixHashTest {
     @Test
     public void testMatchMiss() throws IOException {
         String str = "a man a clan a canal panama";
-        byte[] bytes = str.getBytes("UTF-8");
+        ByteBuf bytes = Unpooled.wrappedBuffer(str.getBytes("UTF-8"));
         
         PrefixHash hash = new PrefixHash(bytes, true);        
         
         String target = "blah!";
-        byte[] targetBytes = target.getBytes("UTF-8");        
+        ByteBuf targetBytes = Unpooled.wrappedBuffer(target.getBytes("UTF-8"));
         Match match = hash.getBestMatch(0, targetBytes);
         
         Assert.assertEquals(0, match.bestMatchIndex);

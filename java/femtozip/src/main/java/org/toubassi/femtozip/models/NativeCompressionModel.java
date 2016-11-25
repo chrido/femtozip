@@ -20,6 +20,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 
@@ -71,14 +73,14 @@ public class NativeCompressionModel extends CompressionModel {
         throw new UnsupportedOperationException();
     }    
 
-    public void compress(byte[] data, OutputStream out) throws IOException {
+    public void compress(ByteBuf data, OutputStream out) throws IOException {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
-        byte[] buf = new byte[data.length * 2];
-        int length = compress(data, buf);
+        byte[] buf = new byte[data.readableBytes() * 2];
+        int length = compressba(data.array(), buf);
         
         if (length < 0) {
             buf = new byte[length];
-            length = compress(data, buf);
+            length = compressba(data.array(), buf);
             if (length < 0) {
                 throw new IllegalStateException();
             }
@@ -87,14 +89,15 @@ public class NativeCompressionModel extends CompressionModel {
         out.write(buf, 0, length);
     }
 
-    public byte[] decompress(byte[] compressedData) {
+    public ByteBuf decompress(ByteBuf compressedData) {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
-        byte[] buf = new byte[compressedData.length * 20];
-        int length = decompress(compressedData, buf);
+        //TODO: Pooling
+        byte[] buf = new byte[compressedData.readableBytes() * 20];
+        int length = decompressba(compressedData.array(), buf);
         
         if (length < 0) {
             buf = new byte[length];
-            length = decompress(compressedData, buf);
+            length = decompressba(compressedData.array(), buf);
             if (length < 0) {
                 throw new IllegalStateException();
             }
@@ -104,7 +107,11 @@ public class NativeCompressionModel extends CompressionModel {
             System.arraycopy(buf, 0, newbuf, 0, length);
             buf = newbuf;
         }
-        return buf;
+        return Unpooled.wrappedBuffer(buf);
+    }
+
+    public void build(DocumentList documents) throws IOException {
+        //TODO: need to convert to netty ByteBuf
     }
 
     
@@ -112,11 +119,11 @@ public class NativeCompressionModel extends CompressionModel {
     
     public native void save(String path) throws IOException;
     
-    public native void build(DocumentList documents) throws IOException;
+    public native void buildba(DocumentList documents) throws IOException;
 
-    public native int compress(byte[] data, byte[] output);
+    public native int compressba(byte[] data, byte[] output);
     
-    public native int decompress(byte[] compressedData, byte[] decompressedData);
+    public native int decompressba(byte[] compressedData, byte[] decompressedData);
 
     @Override
     protected void finalize() {

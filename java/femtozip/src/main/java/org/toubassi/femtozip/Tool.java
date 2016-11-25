@@ -16,6 +16,7 @@
 package org.toubassi.femtozip;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -25,6 +26,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 import org.toubassi.femtozip.util.FileUtil;
@@ -102,20 +106,21 @@ public class Tool  {
         int dataSize = 0;
         int compressedSize = 0;
         for (int i = 0, count = docs.size(); i < count; i++) {
-            byte[] bytes = docs.get(i);
+            ByteBuf bytes = docs.get(i);
             
             long startCompress = System.nanoTime();
-            byte[] compressed = model.compress(bytes);
+            ByteBuf compressed = model.compress(bytes);
             compressTime += System.nanoTime() - startCompress;
 
-            dataSize += bytes.length;
-            compressedSize += compressed.length;
+            dataSize += bytes.readableBytes();
+            compressedSize += compressed.readableBytes();
             
             if (verify) {
                 long startDecompress = System.nanoTime();
-                byte[] decompressed = model.decompress(compressed);
+                ByteBuf decompressed = model.decompress(compressed);
                 decompressTime += System.nanoTime() - startDecompress;
-                if (!Arrays.equals(bytes, decompressed)) {
+
+                if (!decompressed.equals(bytes)) {
                     throw new RuntimeException("Compress/Decompress round trip failed for " + model.getClass().getSimpleName());
                 }
             }
@@ -152,13 +157,14 @@ public class Tool  {
 
     protected void compress(File file) throws IOException {
         System.out.println("Compressing " + file.getName());
-        byte[] data = FileUtil.readFile(file);
-        byte[] compressed = model.compress(data);
+
+        ByteBuf data =FileUtil.readFile(file);
+        ByteBuf compressed = model.compress(data);
         
         File outputFile = new File(file.getPath() + ".fz");
-        FileOutputStream out = new FileOutputStream(outputFile);
-        out.write(compressed);
-        out.close();
+        try(FileOutputStream out = new FileOutputStream(outputFile)) {
+            compressed.readBytes(out, compressed.readableBytes());
+        }
         file.delete();
     }
     
@@ -177,13 +183,13 @@ public class Tool  {
 
     protected void decompress(File file) throws IOException {
         System.out.println("Decompressing " + file.getName());
-        byte[] compressed = FileUtil.readFile(file);
-        byte[] data = model.decompress(compressed);
+        ByteBuf compressed = FileUtil.readFile(file);
+        ByteBuf data = model.decompress(compressed);
         
         File outputFile = new File(file.getPath().substring(0, file.getPath().length() - 3));
-        FileOutputStream out = new FileOutputStream(outputFile);
-        out.write(data);
-        out.close();
+        try(FileOutputStream out = new FileOutputStream(outputFile)) {
+            compressed.readBytes(out, compressed.readableBytes());
+        }
         file.delete();
     }
     
@@ -206,12 +212,14 @@ public class Tool  {
         File dir = new File(path);
         List<String> files = Arrays.asList(dir.list());
         DocumentList documents = new FileDocumentList(path, files);
-        DictionaryOptimizer optimizer = new DictionaryOptimizer(documents);
-        byte[] dictionary = optimizer.optimize(maxDictionarySize  > 0 ? maxDictionarySize : 64*1024);
-        
-        FileOutputStream fileOut = new FileOutputStream(modelPath);
-        fileOut.write(dictionary);
-        fileOut.close();
+        DictionaryOptimizer optimizer = new DictionaryOptimizer(documents, PooledByteBufAllocator.DEFAULT);
+        ByteBuf dictionary = optimizer.optimize(maxDictionarySize  > 0 ? maxDictionarySize : 64*1024);
+
+
+        try(FileOutputStream fileOut = new FileOutputStream(modelPath)) {
+            dictionary.readBytes(fileOut, dictionary.readableBytes());
+            dictionary.resetReaderIndex();
+        }
     }
     
     protected void loadBenchmarkModel() throws IOException {

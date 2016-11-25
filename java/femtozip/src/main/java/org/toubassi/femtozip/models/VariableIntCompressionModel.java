@@ -20,8 +20,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 
@@ -49,24 +52,24 @@ public class VariableIntCompressionModel extends CompressionModel {
         throw new UnsupportedOperationException();
     }
     
-    public void compress(byte[] data, OutputStream out) throws IOException {
-        if (data.length == 0) {
+    public void compress(ByteBuf data, OutputStream out) throws IOException {
+        if (data.readableBytes() == 0) {
             return;
         }
         // If its too big to hold an int, or it has a leading 0, we can't do it (leading zeros will get lost in the encoding).
-        if (data.length > 10 || data[0] == '0') {
+        if (data.readableBytes() > 10 || data.getByte(0) == '0') {
             compressAsNonInt(data, out);
             return;
         }
         
-        for (int i = 0, count = data.length; i < count; i++) {
-            if (data[i] < '0' || data[i] > '9') {
+        for (int i = 0, count = data.readableBytes(); i < count; i++) {
+            if (data.getByte(i) < '0' || data.getByte(i) > '9') {
                 compressAsNonInt(data, out);
                 return;
             }
         }
         
-        long l = Long.parseLong(new String(data, "UTF-8"));
+        long l = Long.parseLong(data.toString(Charset.forName("UTF-8")));
         int i = (int)l;
         if (i != l) {
             compressAsNonInt(data, out);
@@ -81,34 +84,36 @@ public class VariableIntCompressionModel extends CompressionModel {
     
     private static byte[] padding = new byte[6];
     
-    private void compressAsNonInt(byte[] data, OutputStream out) throws IOException {
+    private void compressAsNonInt(ByteBuf data, OutputStream out) throws IOException {
         out.write(padding);
-        out.write(data);
+        data.readBytes(out, data.readableBytes());
+        data.resetReaderIndex();
     }
     
-    private byte[] decompressAsNonInt(byte[] compressedData) {
-        return Arrays.copyOfRange(compressedData, 6, compressedData.length);
+    private ByteBuf decompressAsNonInt(ByteBuf compressedData) {
+        return compressedData.slice(6, compressedData.readableBytes()-6);
+        //return Arrays.copyOfRange(compressedData, 6, compressedData.length);
     }
     
-    public byte[] decompress(byte[] compressedData) {
-        if (compressedData.length == 0) {
+    public ByteBuf decompress(ByteBuf compressedData) {
+        if (compressedData.readableBytes() == 0) {
             return compressedData;
         }
-        if (compressedData.length > 5) {
+        if (compressedData.readableBytes() > 5) {
             return decompressAsNonInt(compressedData);
         }
         
         int index = 0;
-        byte b = compressedData[index++];
+        byte b = compressedData.getByte(index++);
         int i = b & 0x7F;
         for (int shift = 7; (b & 0x80) != 0; shift += 7) {
-          b = compressedData[index++];
+          b = compressedData.getByte(index++);
           i |= (b & 0x7F) << shift;
         }
         
         String s = Integer.toString(i);
         try {
-            return s.getBytes("UTF-8");
+            return Unpooled.wrappedBuffer(s.getBytes("UTF-8")); //TODO: pooling
         }
         catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);

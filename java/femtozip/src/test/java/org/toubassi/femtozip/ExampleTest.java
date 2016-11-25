@@ -2,6 +2,9 @@ package org.toubassi.femtozip;
 
 import java.io.IOException;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,11 +20,11 @@ public class ExampleTest {
                 "http:www.stanford.edu");
         
         CompressionModel model = CompressionModel.buildOptimalModel(trainingDocs);
-        byte[] data = "check out http://www.facebook.com/someone".getBytes("UTF-8");
-        byte[] compressed = model.compress(data);
+        ByteBuf data = Unpooled.wrappedBuffer("check out http://www.facebook.com/someone".getBytes("UTF-8"));
+        ByteBuf compressed = model.compress(data);
         
-        byte[] decompressed = model.decompress(compressed);
-        
-        Assert.assertArrayEquals(data, decompressed);
+        ByteBuf decompressed = model.decompress(compressed);
+
+        Assert.assertTrue(ByteBufUtil.equals(data, decompressed));
     }
 }

@@ -16,9 +16,12 @@
 package org.toubassi.femtozip;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Random;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import junit.framework.Assert;
 
 import org.junit.Test;
@@ -38,10 +41,10 @@ public class MultiThreadCompressionTest {
         long runTime;
         CompressionModel model;
         String source;
-        String dictionary;
+        ByteBuf dictionary;
         Exception e;
         
-        public CompressionThread(long runTimeMillis, CompressionModel model, String dictionary) {
+        public CompressionThread(long runTimeMillis, CompressionModel model, ByteBuf dictionary) {
             runTime = runTimeMillis;
             this.model = model;
             Random random = new Random();
@@ -55,11 +58,11 @@ public class MultiThreadCompressionTest {
         }
         
         private void testModel(CompressionModel model, String source) {
-            byte[] sourceBytes = source.getBytes();
-            byte[] compressedBytes = model.compress(sourceBytes);
+            ByteBuf sourceBytes = Unpooled.wrappedBuffer(source.getBytes());
+            ByteBuf compressedBytes = model.compress(sourceBytes);
 
-            byte[] decompressedBytes = model.decompress(compressedBytes);
-            String decompressedString = new String(decompressedBytes);
+            ByteBuf decompressedBytes = model.decompress(compressedBytes);
+            String decompressedString = decompressedBytes.toString(Charset.forName("UTF-8"));
             
             Assert.assertEquals(source, decompressedString);
         }
@@ -90,12 +93,10 @@ public class MultiThreadCompressionTest {
         for (int i = 0, count = 256 + random.nextInt(64); i < count; i++) {
             dict.append('a' + random.nextInt(26));
         }
-        String dictionary = dict.toString();
+        ByteBuf dictionary = Unpooled.wrappedBuffer(dict.toString().getBytes());
         
-        byte[] dictionaryBytes = dictionary.getBytes();
-        
-        model.setDictionary(dictionaryBytes);
-        model.build(new ArrayDocumentList(dictionaryBytes));
+        model.setDictionary(dictionary);
+        model.build(new ArrayDocumentList(dictionary));
         
         ArrayList<CompressionThread> threads = new ArrayList<CompressionThread>();
         threads.add(new CompressionThread(500, model, dictionary));

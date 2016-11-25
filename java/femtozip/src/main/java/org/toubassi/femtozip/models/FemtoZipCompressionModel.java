@@ -21,18 +21,28 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
-import org.toubassi.femtozip.coding.huffman.FrequencyHuffmanModel;
-import org.toubassi.femtozip.coding.huffman.HuffmanDecoder;
-import org.toubassi.femtozip.coding.huffman.HuffmanEncoder;
+import org.toubassi.femtozip.coding.huffman.*;
 import org.toubassi.femtozip.substring.SubstringPacker;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
 
 public class FemtoZipCompressionModel extends CompressionModel {
     
     private FemtoZipHuffmanModel codeModel;
-    
+
+    public FemtoZipCompressionModel(PooledByteBufAllocator arena) {
+        this.arena = arena;
+    }
+
+    public FemtoZipCompressionModel() {
+        this.arena = PooledByteBufAllocator.DEFAULT;
+    }
+
     public void load(DataInputStream in) throws IOException {
         super.load(in);
         codeModel = new FemtoZipHuffmanModel(in);
@@ -52,10 +62,24 @@ public class FemtoZipCompressionModel extends CompressionModel {
         return new ModelBuilder();
     }
     
-    public void compress(byte[] data, OutputStream out) throws IOException {
-        getSubstringPacker().pack(data, this, new HuffmanEncoder(codeModel.createModel(), out));
+    public void compress(ByteBuf data, OutputStream out) throws IOException {
+        HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputOutputStreamImpl(out));
+        getSubstringPacker().pack(Unpooled.copiedBuffer(data), this, huffmanEncoder);
+
+        out.close();
     }
-    
+
+    public ByteBuf compress(ByteBuf buf) {
+        ByteBuf compressed = PooledByteBufAllocator.DEFAULT.heapBuffer((int) (buf.readableBytes() * 0.5)); //Estimation is that the data is roughly half
+
+
+        HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputByteBufImpl(compressed));
+        getSubstringPacker().pack(buf, this, huffmanEncoder);
+
+
+        return compressed;
+    }
+
     public void encodeLiteral(int aByte, Object context) {
         try {
             HuffmanEncoder encoder = (HuffmanEncoder)context;
@@ -96,9 +120,9 @@ public class FemtoZipCompressionModel extends CompressionModel {
         }
     }
     
-    public byte[] decompress(byte[] compressedBytes) {
+    public ByteBuf decompress(ByteBuf compressedBytes) {
         try {
-            ByteArrayInputStream bytesIn = new ByteArrayInputStream(compressedBytes);
+            ByteBufInputStream bytesIn = new ByteBufInputStream(compressedBytes);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
             SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
         
@@ -119,9 +143,10 @@ public class FemtoZipCompressionModel extends CompressionModel {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }    
-    
-    
+    }
+
+
+
     private class ModelBuilder implements SubstringPacker.Consumer {
         private int[] literalLengthHistogram = new int[256 + 256 + 1]; // 256 for each unique literal byte, 256 for all possible length, plus 1 for EOF
         private int[] offsetHistogramNibble0 = new int[16];

@@ -21,6 +21,8 @@
  */
 package org.toubassi.femtozip.dictionary;
 
+import io.netty.buffer.ByteBuf;
+
 import java.io.PrintStream;
 import java.util.Arrays;
 
@@ -33,9 +35,9 @@ public class SuffixArray {
         return t >= n ? t - n : t;
     }
         
-    public static int[] computeSuffixArray(byte[] bytes) {
-        byte buf[] = bytes;
-        int n = bytes.length;
+    public static int[] computeSuffixArray(ByteBuf bytes) {
+        ByteBuf buf = bytes;
+        int n = bytes.readableBytes();
         int p[] = new int[n + 1];
         
         int[] a, buckets = new int[256*256];
@@ -44,10 +46,10 @@ public class SuffixArray {
         a = new int[n + 1];
         
         Arrays.fill(buckets, -1);
-        c = (((int)buf[n - 1]) & 0xff) << 8;
+        c = (buf.getInt(n - 1) & 0xff) << 8;
         last = c;
         for (i = n - 2; i >= 0; i--) {
-            c = (((int)buf[i]) & 0xff) << 8 | (c >> 8);
+            c = ((int)buf.getByte(i) & 0xff) << 8 | (c >> 8);
             a[i] = buckets[c];
             buckets[c] = i;
         }
@@ -248,9 +250,9 @@ public class SuffixArray {
             qsort2(a, ai + n - r, asucc, r);
     }
     
-    public static int[] computeLCP(byte[] bytes, int[] suffixArray) {
+    public static int[] computeLCP(ByteBuf bytes, int[] suffixArray) {
         int[] a = suffixArray;
-        byte[] s = bytes;
+        ByteBuf s = bytes;
         int n = suffixArray.length;
         int[] lcp = new int[n];
         
@@ -267,7 +269,7 @@ public class SuffixArray {
             int j = a[x - 1];
             int p1 = i + h;
             int p0 = j + h;
-            while (p1 < (n-1) && p0 < (n-1) && s[p1++] == s[p0++]) {
+            while (p1 < (n-1) && p0 < (n-1) && s.getByte(p1++) == s.getByte(p0++)) {
                 h++;
             }
             lcp[x] = h;
