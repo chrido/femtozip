@@ -24,12 +24,21 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 
 public class GZipDictionaryCompressionModel extends CompressionModel {
     private byte[] gzipSizedDictionary;
+
+    public GZipDictionaryCompressionModel(PooledByteBufAllocator pbba) {
+        super(pbba);
+    }
+
+    public GZipDictionaryCompressionModel() {
+        super();
+    }
 
     public void setDictionary(ByteBuf dictionary) {
         super.setDictionary(dictionary);

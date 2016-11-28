@@ -35,11 +35,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
-import org.toubassi.femtozip.models.FemtoZipCompressionModel;
-import org.toubassi.femtozip.models.GZipCompressionModel;
-import org.toubassi.femtozip.models.GZipDictionaryCompressionModel;
-import org.toubassi.femtozip.models.PureHuffmanCompressionModel;
-import org.toubassi.femtozip.models.VariableIntCompressionModel;
+import org.toubassi.femtozip.models.*;
 import org.toubassi.femtozip.substring.SubstringPacker;
 import org.toubassi.femtozip.util.StreamUtil;
 
@@ -73,6 +69,15 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
     protected SubstringPacker packer;
     private int maxDictionaryLength;
     protected PooledByteBufAllocator arena;
+
+    public CompressionModel(PooledByteBufAllocator arena) {
+        this.arena = arena;
+    }
+
+    public CompressionModel() {
+        this.arena = PooledByteBufAllocator.DEFAULT;
+    }
+
 
     public static CompressionModel instantiateCompressionModel(String modelName) {
         if (modelName.indexOf('.') == -1) {
@@ -141,11 +146,11 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
         
         if (competingModels == null || competingModels.length == 0) {
             competingModels = new CompressionModel[5];
-            competingModels[0] = new FemtoZipCompressionModel();
-            competingModels[1] = new PureHuffmanCompressionModel();
-            competingModels[2] = new GZipCompressionModel();
-            competingModels[3] = new GZipDictionaryCompressionModel();
-            competingModels[4] = new VariableIntCompressionModel();
+            competingModels[0] = new FemtoZipCompressionModel(pbba);
+            competingModels[1] = new PureHuffmanCompressionModel(pbba);
+            competingModels[2] = new GZipCompressionModel(pbba);
+            competingModels[3] = new GZipDictionaryCompressionModel(pbba);
+            competingModels[4] = new VariableIntCompressionModel(pbba);
         }
         
         if (results == null) {

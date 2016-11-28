@@ -32,15 +32,15 @@ import org.toubassi.femtozip.substring.SubstringPacker;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
 
 public class FemtoZipCompressionModel extends CompressionModel {
-    
     private FemtoZipHuffmanModel codeModel;
 
+
     public FemtoZipCompressionModel(PooledByteBufAllocator arena) {
-        this.arena = arena;
+        super(arena);
     }
 
     public FemtoZipCompressionModel() {
-        this.arena = PooledByteBufAllocator.DEFAULT;
+        super();
     }
 
     public void load(DataInputStream in) throws IOException {

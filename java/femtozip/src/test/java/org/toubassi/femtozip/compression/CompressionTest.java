@@ -106,7 +106,7 @@ public class CompressionTest {
         Assert.assertEquals(2, compressedBytes.readableBytes());
 
         ByteBuf decompressedBytes = model.decompress(compressedBytes);
-        String decompressedString = new String(decompressedBytes.array());
+        String decompressedString = decompressedBytes.toString(Charset.forName("UTF-8"));
         
         Assert.assertEquals(source, decompressedString);
         

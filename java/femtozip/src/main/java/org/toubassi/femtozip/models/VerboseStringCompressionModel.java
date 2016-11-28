@@ -23,11 +23,21 @@ import java.nio.charset.Charset;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
 
 public class VerboseStringCompressionModel extends CompressionModel {
+
+    public VerboseStringCompressionModel() {
+        super();
+    }
+
+    public VerboseStringCompressionModel(PooledByteBufAllocator arena) {
+        super(arena);
+    }
+
     public void build(DocumentList documents) throws IOException {
         buildDictionaryIfUnspecified(documents);
     }

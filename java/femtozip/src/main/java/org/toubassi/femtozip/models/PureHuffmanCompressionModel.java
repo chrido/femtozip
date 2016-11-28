@@ -24,6 +24,7 @@ import java.io.OutputStream;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
@@ -35,7 +36,15 @@ import org.toubassi.femtozip.coding.huffman.FrequencyHuffmanModel;
 public class PureHuffmanCompressionModel extends CompressionModel {
 
     private FrequencyHuffmanModel codeModel;
-    
+
+    public PureHuffmanCompressionModel(PooledByteBufAllocator pbba) {
+        super(pbba);
+    }
+
+    public PureHuffmanCompressionModel() {
+        super();
+    }
+
     public void load(DataInputStream in) throws IOException {
         codeModel = new FrequencyHuffmanModel(in);
     }

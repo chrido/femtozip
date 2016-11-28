@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
@@ -46,11 +47,21 @@ public class NativeCompressionModel extends CompressionModel {
 
     protected long nativeModel;
     
-    public NativeCompressionModel() {
+    public NativeCompressionModel(PooledByteBufAllocator arena) {
+        super(arena);
+        ensureNativeLibraryLoaded();
+    }
+
+    private void ensureNativeLibraryLoaded() {
         if (!nativeLibraryLoaded) {
             System.loadLibrary("jnifzip");
             nativeLibraryLoaded = true;
         }
+    }
+
+    public NativeCompressionModel() {
+        super();
+        ensureNativeLibraryLoaded();
     }
 
     public void encodeLiteral(int aByte, Object context) {

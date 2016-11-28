@@ -24,11 +24,20 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 
 public class VariableIntCompressionModel extends CompressionModel {
+
+    public VariableIntCompressionModel(PooledByteBufAllocator pbba) {
+        super(pbba);
+    }
+
+    public VariableIntCompressionModel() {
+        super();
+    }
 
     public void load(DataInputStream in) throws IOException {
     }
@@ -110,14 +119,10 @@ public class VariableIntCompressionModel extends CompressionModel {
           b = compressedData.getByte(index++);
           i |= (b & 0x7F) << shift;
         }
-        
-        String s = Integer.toString(i);
-        try {
-            return Unpooled.wrappedBuffer(s.getBytes("UTF-8")); //TODO: pooling
-        }
-        catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
+        String s = Integer.toString(i);
+        ByteBuf buf = arena.buffer();
+        buf.writeBytes(s.getBytes(Charset.forName("UTF-8")));
+        return buf;
+    }
 }

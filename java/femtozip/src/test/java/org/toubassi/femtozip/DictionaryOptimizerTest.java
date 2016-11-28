@@ -25,6 +25,8 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 
+import static junit.framework.TestCase.assertEquals;
+
 
 public class DictionaryOptimizerTest {
     
@@ -33,11 +35,11 @@ public class DictionaryOptimizerTest {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(new ArrayDocumentList("a man a plan a canal panama"));
         optimizer.optimize(64*1024);
         
-        Assert.assertEquals(2, optimizer.getSubstringCount());
-        Assert.assertEquals(25, optimizer.getSubstringScore(0));
-        Assert.assertEquals("n a ", optimizer.getSubstringBytes(0).toString(Charset.forName("UTF-8")));
-        Assert.assertEquals(40, optimizer.getSubstringScore(1));
-        Assert.assertEquals("an a ", optimizer.getSubstringBytes(1).toString(Charset.forName("UTF-8")));
+        assertEquals(2, optimizer.getSubstringCount());
+        assertEquals(25, optimizer.getSubstringScore(0));
+        assertEquals("n a ", optimizer.getSubstringBytes(0).toString(Charset.forName("UTF-8")));
+        assertEquals(40, optimizer.getSubstringScore(1));
+        assertEquals("an a ", optimizer.getSubstringBytes(1).toString(Charset.forName("UTF-8")));
     }
 
     
@@ -47,7 +49,7 @@ public class DictionaryOptimizerTest {
         ByteBuf dictionary = optimizer.optimize(64*1024);
         String d = dictionary.toString(Charset.forName("UTF-8"));
 
-        Assert.assertEquals("000011111", d);
+        assertEquals("000011111", d);
     }
 
 }
