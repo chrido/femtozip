@@ -18,6 +18,7 @@ package org.toubassi.femtozip;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 import io.netty.buffer.ByteBuf;
@@ -25,6 +26,8 @@ import io.netty.buffer.Unpooled;
 import junit.framework.Assert;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.toubassi.femtozip.models.GZipCompressionModel;
 import org.toubassi.femtozip.models.GZipDictionaryCompressionModel;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
@@ -33,7 +36,26 @@ import org.toubassi.femtozip.models.VariableIntCompressionModel;
 import org.toubassi.femtozip.models.VerboseStringCompressionModel;
 
 
+@RunWith(Parameterized.class)
 public class MultiThreadCompressionTest {
+
+    private final CompressionModel model;
+
+    public MultiThreadCompressionTest(CompressionModel model) {
+        this.model = model;
+    }
+
+    @Parameterized.Parameters()
+    public static Iterable<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+                { new VerboseStringCompressionModel()}, { new FemtoZipCompressionModel()}, {new GZipDictionaryCompressionModel()}, { new GZipCompressionModel()}, {new PureHuffmanCompressionModel()}, {new VariableIntCompressionModel()}
+        });
+    }
+
+    @Test
+    public void testThreading() throws IOException, InterruptedException {
+        testThreadedCompressionModel(model);
+    }
     
     public static class CompressionThread extends Thread {
         
@@ -118,16 +140,5 @@ public class MultiThreadCompressionTest {
             }
             Assert.assertNull("Exception in thread " + thread.getId() + " : " + model.getClass() + " " + thread.e, thread.e);
         }
-    }
-
-    @Test
-    public void testThreading() throws IOException, InterruptedException {
-        
-        testThreadedCompressionModel(new VerboseStringCompressionModel());
-        testThreadedCompressionModel(new FemtoZipCompressionModel());
-        testThreadedCompressionModel(new GZipDictionaryCompressionModel());
-        testThreadedCompressionModel(new GZipCompressionModel());
-        testThreadedCompressionModel(new PureHuffmanCompressionModel());
-        testThreadedCompressionModel(new VariableIntCompressionModel());
     }
 }

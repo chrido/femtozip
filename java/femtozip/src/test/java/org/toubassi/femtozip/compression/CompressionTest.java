@@ -13,7 +13,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-package org.toubassi.femtozip;
+package org.toubassi.femtozip.compression;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -24,6 +24,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Assert;
 import org.junit.Test;
+import org.toubassi.femtozip.ArrayDocumentList;
+import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.models.GZipCompressionModel;
 import org.toubassi.femtozip.models.GZipDictionaryCompressionModel;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
@@ -54,48 +56,9 @@ public class CompressionTest {
         dictionary = dictionaryToString(compressionModel.getDictionary());
         Assert.assertEquals("an a ", dictionary);
     }
-    
-    
-    @Test
-    public void testCompressionModels() throws IOException {
-        String[][] testPairs = {{PreambleString, PreambleDictionary}, {"",""}};
-        for (String[] testPair : testPairs) {
-            testModel(testPair[0], testPair[1], new VerboseStringCompressionModel(), testPair[0].length() == 0 ? -1 : 363);
-            testModel(testPair[0], testPair[1], new FemtoZipCompressionModel(), testPair[0].length() == 0 ? -1 : 205);
-            testModel(testPair[0], testPair[1], new GZipDictionaryCompressionModel(), testPair[0].length() == 0 ? -1 : 204);
-            testModel(testPair[0], testPair[1], new GZipCompressionModel(), testPair[0].length() == 0 ? -1 : 210);
-            testModel(testPair[0], testPair[1], new PureHuffmanCompressionModel(), testPair[0].length() == 0 ? -1 : 211);
-            testModel(testPair[0], testPair[1], new VariableIntCompressionModel(), testPair[0].length() == 0 ? -1 : 333);
-        }
-    }
-    
+
     private static String dictionaryToString(ByteBuf dictionary) {
         return dictionary.toString(Charset.forName("UTF-8"));
-    }
-    
-    public static void testModel(String source, String dictionary, CompressionModel model, int expectedSize) throws IOException {
-        ByteBuf sourceBytes = Unpooled.wrappedBuffer(source.getBytes());
-        ByteBuf dictionaryBytes = dictionary == null ? null : Unpooled.wrappedBuffer(dictionary.getBytes());
-        
-        model.setDictionary(dictionaryBytes);
-        model.build(new ArrayDocumentList(sourceBytes));
-        
-        testBuiltModel(model, sourceBytes, expectedSize);
-    }
-    
-    public static void testBuiltModel(CompressionModel model, ByteBuf sourceBytes, int expectedSize) throws IOException {
-        ByteBuf compressedBytes = model.compress(sourceBytes);
-
-        if (expectedSize >= 0) {
-            Assert.assertEquals(expectedSize, compressedBytes.readableBytes());
-        }
-        
-        ByteBuf decompressedBytes = model.decompress(compressedBytes);
-
-        Assert.assertTrue(sourceBytes.equals(decompressedBytes));
-
-        sourceBytes.release();
-        compressedBytes.release();
     }
 
     @Test

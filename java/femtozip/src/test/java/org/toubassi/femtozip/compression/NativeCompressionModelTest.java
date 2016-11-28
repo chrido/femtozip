@@ -13,9 +13,8 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-package org.toubassi.femtozip.models;
+package org.toubassi.femtozip.compression;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,7 +23,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
-import org.toubassi.femtozip.CompressionTest;
+import org.toubassi.femtozip.compression.CompressionTest;
+import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
+import org.toubassi.femtozip.models.FemtoZipCompressionModel;
+import org.toubassi.femtozip.models.NativeCompressionModel;
 
 
 public class NativeCompressionModelTest {
@@ -37,7 +39,13 @@ public class NativeCompressionModelTest {
         NativeCompressionModel model = new NativeCompressionModel();
         FemtoZipCompressionModel fModel = new FemtoZipCompressionModel();
 
-        CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, model, 187);
+        ByteBuf sourceBytes = Unpooled.wrappedBuffer(CompressionTest.PreambleString.getBytes());
+        ByteBuf dictionaryBytes = Unpooled.wrappedBuffer(CompressionTest.PreambleDictionary.getBytes());
+
+        model.setDictionary(dictionaryBytes);
+        model.build(new ArrayDocumentList(sourceBytes));
+
+        DictionaryOptimizerTest.testBuiltModel(model, sourceBytes, 187);
         //CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
         
         File modelFile = File.createTempFile("native", ".fzm");
@@ -45,8 +53,6 @@ public class NativeCompressionModelTest {
         model.save(modelFile.getPath());
         model = new NativeCompressionModel();
         model.load(modelFile.getPath());
-
-        //CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, model, 187);
 
         modelFile.delete();
     }
@@ -66,8 +72,7 @@ public class NativeCompressionModelTest {
         
         for (int i = 0; i < 100; i++) {
             ByteBuf doc = generateSampleDoc((int)(Math.random() * 100) + 100);
-            
-            CompressionTest.testBuiltModel(model, doc, -1);
+            DictionaryOptimizerTest.testBuiltModel(model, doc, -1);
         }
     }
     
