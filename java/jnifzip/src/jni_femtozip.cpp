@@ -110,7 +110,7 @@ void release_doc_callback(const char *buf, void *user_data) {
     delete[] buf;
 }
 
-JNIEXPORT void JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_build(JNIEnv *env, jobject obj, jobject docList) {
+JNIEXPORT void JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_buildba(JNIEnv *env, jobject obj, jobject docList) {
 
     void *model = getModel(env, obj);
     if (model) {
@@ -131,7 +131,7 @@ JNIEXPORT void JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_
     setModel(env, obj, model);
 }
 
-JNIEXPORT jint JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_compress(JNIEnv *env, jobject obj, jbyteArray sourceBytesArray, jbyteArray destBytesArray) {
+JNIEXPORT jint JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_compressba(JNIEnv *env, jobject obj, jbyteArray sourceBytesArray, jbyteArray destBytesArray) {
     void *model = getModel(env, obj);
     if (!model) {
         return 0;
@@ -157,7 +157,7 @@ JNIEXPORT jint JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_
     return length;
 }
 
-JNIEXPORT jint JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_decompress(JNIEnv *env, jobject obj, jbyteArray sourceBytesArray, jbyteArray destBytesArray) {
+JNIEXPORT jint JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_decompressba(JNIEnv *env, jobject obj, jbyteArray sourceBytesArray, jbyteArray destBytesArray) {
     void *model = getModel(env, obj);
     if (!model) {
         return 0;
