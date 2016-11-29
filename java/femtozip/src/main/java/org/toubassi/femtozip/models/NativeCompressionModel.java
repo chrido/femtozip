@@ -106,7 +106,9 @@ public class NativeCompressionModel extends CompressionModel {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
         //TODO: Use Java Nio Bytebuf instead of copying
         byte[] buf = new byte[compressedData.readableBytes() * 20];
-        int length = decompressba(compressedData.array(), buf);
+        byte[] compressedDataB = new byte[compressedData.readableBytes()];
+        compressedData.readBytes(compressedData);
+        int length = decompressba(compressedDataB, buf);
         
         if (length < 0) {
             buf = new byte[length];

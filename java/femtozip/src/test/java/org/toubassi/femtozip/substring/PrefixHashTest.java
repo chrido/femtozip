@@ -30,7 +30,7 @@ public class PrefixHashTest {
     @Test
     public void testPrefixHash() throws IOException {
         String str = "a man a clan a canal panama";
-        ByteBuf bytes = Unpooled.copiedBuffer(str.getBytes("UTF-8"));
+        ByteBuf bytes = Unpooled.wrappedBuffer(str.getBytes("UTF-8"));
         
         PrefixHash hash = new PrefixHash(bytes, false);
         for (int i = 0; i < 12; i++) {

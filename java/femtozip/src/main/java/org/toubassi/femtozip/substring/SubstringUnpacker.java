@@ -16,18 +16,20 @@
 package org.toubassi.femtozip.substring;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.PooledByteBufAllocator;
 
 import java.io.ByteArrayOutputStream;
 
 public class SubstringUnpacker implements SubstringPacker.Consumer {
+    private final PooledByteBufAllocator arena;
     private ByteBuf dictionary;
     private ByteBuf bytesOut;
     private ByteBuf unpackedBytes;
     
-    public SubstringUnpacker(ByteBuf dictionary) {
-        this.dictionary = dictionary == null ? Unpooled.buffer(0) : dictionary;
-        bytesOut = Unpooled.buffer(1024);
+    public SubstringUnpacker(ByteBuf dictionary, PooledByteBufAllocator arena) {
+        this.arena = arena;
+        this.dictionary = dictionary == null ? arena.buffer(0) : dictionary;
+        bytesOut = arena.buffer(1024);
     }
     
     public void encodeLiteral(int aByte, Object context) {
@@ -38,7 +40,7 @@ public class SubstringUnpacker implements SubstringPacker.Consumer {
         if (unpackedBytes == null) {
             unpackedBytes = bytesOut;
             unpackedBytes.resetReaderIndex();
-            bytesOut = Unpooled.buffer(1024);
+            bytesOut = arena.buffer(1024);
         }
         return unpackedBytes;
     }
@@ -74,11 +76,5 @@ public class SubstringUnpacker implements SubstringPacker.Consumer {
     }
     
     public void endEncoding(Object context) {
-    }
-
-    private static class ByteOutput extends ByteArrayOutputStream {
-        public byte get(int i) {
-            return buf[i];
-        }
     }
 }

@@ -24,6 +24,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
@@ -60,7 +61,21 @@ public class VariableIntCompressionModel extends CompressionModel {
     public void endEncoding(Object context) {
         throw new UnsupportedOperationException();
     }
-    
+
+    @Override
+    public ByteBuf compress(ByteBuf data) {
+        ByteBuf compressed = arena.buffer();
+        OutputStream bbos = new ByteBufOutputStream(compressed);
+        try {
+            compress(data, bbos);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("IOException", e);
+        }
+
+        return compressed;
+    }
+
     public void compress(ByteBuf data, OutputStream out) throws IOException {
         if (data.readableBytes() == 0) {
             return;

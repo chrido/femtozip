@@ -15,21 +15,6 @@
  */
 package org.toubassi.femtozip;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -37,7 +22,12 @@ import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.*;
 import org.toubassi.femtozip.substring.SubstringPacker;
-import org.toubassi.femtozip.util.StreamUtil;
+
+import java.io.*;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The primary class used by external consumers of the Java FemtoZip API.
@@ -308,25 +298,6 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
     
     public abstract void build(DocumentList documents) throws IOException;
 
-    /**
-     * Compresses the specified data.
-     * @param data The data to compress.
-     * @return The compressed data
-     */
-    public ByteBuf compress(ByteBuf data) {
-        try {
-            ByteBuf backingByteBuf = Unpooled.buffer((int) (data.readableBytes() * 0.5));
-            try(ByteBufOutputStream bytesOut = new ByteBufOutputStream(backingByteBuf)) {
-                compress(data, bytesOut);
-            }
-            return backingByteBuf;
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        
-    }
-    
     public void compress(ByteBuf data, OutputStream out) throws IOException {
         getSubstringPacker().pack(data, this, null);
     }
@@ -337,7 +308,25 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
      * @return The decompressed data
      */
     public abstract ByteBuf decompress(ByteBuf compressedData);
-    
+
+    /**
+     * Compresses the specified data.
+     * @param data The data to compress.
+     * @return The compressed data
+     */
+    public ByteBuf compress(ByteBuf data) {
+        ByteBuf compressed = arena.buffer();
+        OutputStream bbos = new ByteBufOutputStream(compressed);
+        try {
+            compress(data, bbos);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("IOException", e);
+        }
+        return compressed;
+    }
+
+
     protected void buildDictionaryIfUnspecified(DocumentList documents) throws IOException {
         if (dictionary == null) {
             dictionary = (this.maxDictionaryLength != 0) ? buildDictionary(documents, this.maxDictionaryLength) : buildDictionary(documents);

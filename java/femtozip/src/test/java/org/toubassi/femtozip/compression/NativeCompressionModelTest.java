@@ -72,6 +72,7 @@ public class NativeCompressionModelTest {
         
         for (int i = 0; i < 100; i++) {
             ByteBuf doc = generateSampleDoc((int)(Math.random() * 100) + 100);
+            int i1 = doc.readableBytes();
             DictionaryOptimizerTest.testBuiltModel(model, doc, -1);
         }
     }

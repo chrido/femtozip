@@ -24,7 +24,6 @@ import java.io.OutputStream;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.coding.huffman.*;
@@ -64,7 +63,7 @@ public class FemtoZipCompressionModel extends CompressionModel {
     
     public void compress(ByteBuf data, OutputStream out) throws IOException {
         HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputOutputStreamImpl(out));
-        getSubstringPacker().pack(Unpooled.copiedBuffer(data), this, huffmanEncoder);
+        getSubstringPacker().pack(data, this, huffmanEncoder);
 
         out.close();
     }
@@ -124,7 +123,7 @@ public class FemtoZipCompressionModel extends CompressionModel {
         try {
             ByteBufInputStream bytesIn = new ByteBufInputStream(compressedBytes);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
-            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, arena);
         
             int nextSymbol;
             while ((nextSymbol = decoder.decodeSymbol()) != -1) {

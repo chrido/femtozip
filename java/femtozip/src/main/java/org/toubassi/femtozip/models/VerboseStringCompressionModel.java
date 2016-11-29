@@ -18,11 +18,10 @@ package org.toubassi.femtozip.models;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
@@ -42,12 +41,26 @@ public class VerboseStringCompressionModel extends CompressionModel {
         buildDictionaryIfUnspecified(documents);
     }
 
+    @Override
+    public ByteBuf compress(ByteBuf data) {
+        ByteBuf compressed = arena.buffer();
+        OutputStream bbos = new ByteBufOutputStream(compressed);
+        try {
+            compress(data, bbos);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("IOException", e);
+        }
+
+        return compressed;
+    }
+
     public void compress(ByteBuf data, OutputStream out) throws IOException {
         getSubstringPacker().pack(data, this, new PrintWriter(out));
     }
 
     public ByteBuf decompress(ByteBuf compressedData) {
-        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, arena);
 
         String source = compressedData.toString(Charset.forName("UTF-8"));
         for (int i = 0, count = source.length(); i < count; i++) {
