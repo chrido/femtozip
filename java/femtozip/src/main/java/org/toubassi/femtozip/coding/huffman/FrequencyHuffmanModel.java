@@ -31,9 +31,12 @@ public class FrequencyHuffmanModel implements HuffmanModel {
     
     public static int[] computeHistogramWithEOFSymbol(ByteBuf data) {
         int[] histogram = new int[256 + 1];
-        for (int i = 0, count = data.readableBytes(); i < count; i++) {
-            histogram[((int)data.getByte(i)) & 0xff]++; //TODO: replace lookups with iterating through bytebuf
+
+        while (data.isReadable()) {
+            histogram[((int)data.readByte()) & 0xff]++;
         }
+        data.resetReaderIndex();
+
         histogram[histogram.length - 1] = 1; // EOF
         return histogram;
     }

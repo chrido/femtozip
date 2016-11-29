@@ -142,7 +142,7 @@ public class SubstringArray {
         return scores[i];
     }
 
-    public int indexOf(int s1, SubstringArray sa, int s2, ByteBuf s, int[] prefixes) {
+    public int indexOf(int s1, SubstringArray sa, int s2, byte[] s, int[] prefixes) {
         int index1 = indexes[s1];
         int length1 = lengths[s1];
         int index2 = sa.indexes[s2];
@@ -150,8 +150,23 @@ public class SubstringArray {
         
         for (int i = prefixes[index1], n = prefixes[index1] + length1 - length2 + 1; i < n; i++) {
             boolean found = true;
-            for (int j = prefixes[index2], nj = prefixes[index2] + length2, i1 = i; j < nj; j++, i1++) {
-                if (s.getByte(i1) != s.getByte(j)) {
+            /*ByteBuf sliceI = s.slice(i, length2);
+            ByteBuf sliceJ = s.slice(prefixes[index2], length2);
+
+            while (sliceI.isReadable()) {
+                if(sliceI.readByte() != sliceJ.readByte()) {
+                    found = false;
+                    break;
+                }
+            }*/
+
+            /* ORIGINAL */
+            for (int j = prefixes[index2],
+                 nj = prefixes[index2] + length2,
+                 i1 = i;
+                 j < nj;
+                 j++, i1++) {
+                if (s[i1] != s[j]) {
                     found = false;
                     break;
                 }

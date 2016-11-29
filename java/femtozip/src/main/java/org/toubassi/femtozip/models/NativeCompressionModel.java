@@ -87,7 +87,9 @@ public class NativeCompressionModel extends CompressionModel {
     public void compress(ByteBuf data, OutputStream out) throws IOException {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
         byte[] buf = new byte[data.readableBytes() * 2];
-        int length = compressba(data.array(), buf);
+        byte[] dataBuf = new byte[data.readableBytes()];
+        data.readBytes(dataBuf);
+        int length = compressba(dataBuf, buf);
         
         if (length < 0) {
             buf = new byte[length];
@@ -102,7 +104,7 @@ public class NativeCompressionModel extends CompressionModel {
 
     public ByteBuf decompress(ByteBuf compressedData) {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
-        //TODO: Pooling
+        //TODO: Use Java Nio Bytebuf instead of copying
         byte[] buf = new byte[compressedData.readableBytes() * 20];
         int length = decompressba(compressedData.array(), buf);
         

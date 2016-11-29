@@ -213,8 +213,8 @@ public class Tool  {
         List<String> files = Arrays.asList(dir.list());
         DocumentList documents = new FileDocumentList(path, files);
         DictionaryOptimizer optimizer = new DictionaryOptimizer(documents, PooledByteBufAllocator.DEFAULT);
-        ByteBuf dictionary = optimizer.optimize(maxDictionarySize  > 0 ? maxDictionarySize : 64*1024);
-
+        byte[] dict = optimizer.optimize(maxDictionarySize > 0 ? maxDictionarySize : 64 * 1024);
+        ByteBuf dictionary = Unpooled.wrappedBuffer(dict);
 
         try(FileOutputStream fileOut = new FileOutputStream(modelPath)) {
             dictionary.readBytes(fileOut, dictionary.readableBytes());

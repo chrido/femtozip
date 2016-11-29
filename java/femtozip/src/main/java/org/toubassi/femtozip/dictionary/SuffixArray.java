@@ -35,27 +35,27 @@ public class SuffixArray {
         return t >= n ? t - n : t;
     }
         
-    public static int[] computeSuffixArray(ByteBuf bytes) {
-        ByteBuf buf = bytes;
-        int n = bytes.readableBytes();
+    public static int[] computeSuffixArray(byte[] bytes) {
+        byte buf[] = bytes;
+        int n = bytes.length;
         int p[] = new int[n + 1];
-        
+
         int[] a, buckets = new int[256*256];
         int i, last, cum, c, cc, ncc, lab, nbuck;
-        
+
         a = new int[n + 1];
-        
+
         Arrays.fill(buckets, -1);
-        c = (buf.getInt(n - 1) & 0xff) << 8;
+        c = (((int)buf[n - 1]) & 0xff) << 8;
         last = c;
         for (i = n - 2; i >= 0; i--) {
-            c = ((int)buf.getByte(i) & 0xff) << 8 | (c >> 8);
+            c = (((int)buf[i]) & 0xff) << 8 | (c >> 8);
             a[i] = buckets[c];
             buckets[c] = i;
         }
-        
+
         a[n] = 0;
-        
+
         lab = 1;
         cum = 1;
         i = 0;
@@ -66,7 +66,7 @@ public class SuffixArray {
                 cum++;
                 lab++;
             }
-            
+
             for(cc = buckets[c]; cc != -1; cc = ncc) {
                 ncc = a[cc];
                 a[cc] = lab;
@@ -83,7 +83,7 @@ public class SuffixArray {
             }
             lab = cum;
         }
-        
+
         ssortit(a, p, n + 1, 2, i, nbuck);
         return p;
     }
@@ -250,26 +250,26 @@ public class SuffixArray {
             qsort2(a, ai + n - r, asucc, r);
     }
     
-    public static int[] computeLCP(ByteBuf bytes, int[] suffixArray) {
+    public static int[] computeLCP(byte[] bytes, int[] suffixArray) {
         int[] a = suffixArray;
-        ByteBuf s = bytes;
+        byte[] s = bytes;
         int n = suffixArray.length;
         int[] lcp = new int[n];
-        
+
         int i, h;
         int[] inv = new int[n];
-        
+
         for (i = 0; i < n; i++) {
             inv[a[i]] = i;
         }
-        
+
         h = 0;
         for (i = 0; i < n - 1; i++) {
             int x = inv[i];
             int j = a[x - 1];
             int p1 = i + h;
             int p0 = j + h;
-            while (p1 < (n-1) && p0 < (n-1) && s.getByte(p1++) == s.getByte(p0++)) {
+            while (p1 < (n-1) && p0 < (n-1) && s[p1++] == s[p0++]) {
                 h++;
             }
             lcp[x] = h;
@@ -277,7 +277,7 @@ public class SuffixArray {
                 h--;
             }
         }
-        
+
         lcp[0] = 0;
         return lcp;
     }

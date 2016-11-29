@@ -15,15 +15,11 @@
  */
 package org.toubassi.femtozip;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-
-import io.netty.buffer.ByteBuf;
 import junit.framework.Assert;
-
 import org.junit.Test;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
+
+import java.io.IOException;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -37,19 +33,19 @@ public class DictionaryOptimizerTest {
         
         assertEquals(2, optimizer.getSubstringCount());
         assertEquals(25, optimizer.getSubstringScore(0));
-        assertEquals("n a ", optimizer.getSubstringBytes(0).toString(Charset.forName("UTF-8")));
+        assertEquals("n a ", new String(optimizer.getSubstringBytes(0), "UTF-8"));
         assertEquals(40, optimizer.getSubstringScore(1));
-        assertEquals("an a ", optimizer.getSubstringBytes(1).toString(Charset.forName("UTF-8")));
+        assertEquals("an a ", new String(optimizer.getSubstringBytes(1), "UTF-8"));
     }
 
     
     @Test
     public void testDictPack() throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(new ArrayDocumentList("11111", "11111", "00000"));
-        ByteBuf dictionary = optimizer.optimize(64*1024);
-        String d = dictionary.toString(Charset.forName("UTF-8"));
+        byte[] dictionary = optimizer.optimize(64*1024);
+        String d = new String(dictionary);
 
-        assertEquals("000011111", d);
+        Assert.assertEquals("000011111", d);
     }
 
 }

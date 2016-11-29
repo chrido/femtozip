@@ -46,7 +46,7 @@ public class NativeCompressionModelTest {
         model.build(new ArrayDocumentList(sourceBytes));
 
         DictionaryOptimizerTest.testBuiltModel(model, sourceBytes, 187);
-        //CompressionTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
+        //DictionaryOptimizerTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
         
         File modelFile = File.createTempFile("native", ".fzm");
         

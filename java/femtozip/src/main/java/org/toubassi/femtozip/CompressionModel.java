@@ -346,7 +346,10 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
 
     protected static ByteBuf buildDictionary(PooledByteBufAllocator arena, DocumentList documents, int maxDictionaryLength) throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(documents, arena);
-        return optimizer.optimize(maxDictionaryLength);
+        byte[] dict = optimizer.optimize(maxDictionaryLength);
+        ByteBuf buffer = arena.buffer(dict.length);
+        buffer.writeBytes(dict);
+        return buffer;
     }
 
     protected static ByteBuf buildDictionary(DocumentList documents) throws IOException {
@@ -355,7 +358,9 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
 
     protected static ByteBuf buildDictionary(DocumentList documents, int maxDictionaryLength) throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(documents);
-        return optimizer.optimize(maxDictionaryLength);
+        byte[] dict = optimizer.optimize(maxDictionaryLength);
+
+        return Unpooled.wrappedBuffer(dict);
     }
     
     protected SubstringPacker.Consumer createModelBuilder() {
