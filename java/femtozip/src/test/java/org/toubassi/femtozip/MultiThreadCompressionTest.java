@@ -96,6 +96,7 @@ public class MultiThreadCompressionTest {
             Assert.assertEquals(source, decompressedString);
 
             compressedBytes.release();
+            decompressedBytes.release();
         }
 
         public void run() {

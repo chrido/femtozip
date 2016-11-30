@@ -115,7 +115,8 @@ public class VariableIntCompressionModel extends CompressionModel {
     }
     
     private ByteBuf decompressAsNonInt(ByteBuf compressedData) {
-        return compressedData.slice(6, compressedData.readableBytes()-6);
+        //ByteBuf slice = compressedData.slice();
+        return compressedData.retainedSlice(6, compressedData.readableBytes() - 6);
     }
     
     public ByteBuf decompress(ByteBuf compressedData) {
