@@ -15,11 +15,13 @@
  */
 package org.toubassi.femtozip;
 
+import io.netty.buffer.ByteBuf;
 import junit.framework.Assert;
 import org.junit.Test;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -42,8 +44,8 @@ public class DictionaryOptimizerTest {
     @Test
     public void testDictPack() throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(new ArrayDocumentList("11111", "11111", "00000"));
-        byte[] dictionary = optimizer.optimize(64*1024);
-        String d = new String(dictionary);
+        ByteBuf dictionary = optimizer.optimize(64*1024);
+        String d = dictionary.toString(Charset.forName("UTF-8"));
 
         Assert.assertEquals("000011111", d);
     }

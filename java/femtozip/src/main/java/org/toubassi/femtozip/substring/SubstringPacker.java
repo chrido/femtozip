@@ -18,8 +18,6 @@ package org.toubassi.femtozip.substring;
 
 import io.netty.buffer.ByteBuf;
 
-import static io.netty.buffer.Unpooled.buffer;
-
 public class SubstringPacker {
     private static final int MinimumMatchLength = PrefixHash.PrefixLength;
     
@@ -33,7 +31,7 @@ public class SubstringPacker {
     }
     
     public SubstringPacker(ByteBuf dictionary) {
-        this.dictionary = dictionary = dictionary == null ? buffer(0) : dictionary;
+        this.dictionary = dictionary;
         dictHash = new PrefixHash(dictionary, true);
     }
     

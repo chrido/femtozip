@@ -15,7 +15,6 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;

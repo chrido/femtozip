@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @RunWith(Parameterized.class)
-public class DictionaryOptimizerTest {
+public class RegressionTests {
     public static String PreambleString = "We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.";
     public static String PreambleDictionary = " of and for the a United States ";
     private final String source;
@@ -40,7 +40,7 @@ public class DictionaryOptimizerTest {
         return allCombinations;
     }
 
-    public DictionaryOptimizerTest(String source, String dictionary, CompressionModel model, int expectedSize) {
+    public RegressionTests(String source, String dictionary, CompressionModel model, int expectedSize) {
         this.source = source;
         this.dictionary = dictionary;
         this.model = model;
@@ -50,9 +50,10 @@ public class DictionaryOptimizerTest {
     @Test
     public void testModel() throws IOException {
         ByteBuf sourceBytes = Unpooled.wrappedBuffer(source.getBytes());
-        ByteBuf dictionaryBytes = dictionary == null ? null : Unpooled.wrappedBuffer(dictionary.getBytes());
-
-        model.setDictionary(dictionaryBytes);
+        if(dictionary != null) {
+            ByteBuf dictionaryBytes = Unpooled.wrappedBuffer(dictionary.getBytes());
+            model.setDictionary(dictionaryBytes);
+        }
         model.build(new ArrayDocumentList(sourceBytes));
 
         testBuiltModel(model, sourceBytes, expectedSize);
@@ -67,6 +68,7 @@ public class DictionaryOptimizerTest {
 
         ByteBuf decompressedBytes = model.decompress(compressedBytes);
 
+        sourceBytes.resetReaderIndex();
         Assert.assertTrue(sourceBytes.equals(decompressedBytes));
 
         sourceBytes.release();

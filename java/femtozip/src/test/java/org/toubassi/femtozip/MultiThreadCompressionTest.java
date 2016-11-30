@@ -50,7 +50,12 @@ public class MultiThreadCompressionTest {
     @Parameterized.Parameters()
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][] {
-                { new VerboseStringCompressionModel()}, { new FemtoZipCompressionModel()}, {new GZipDictionaryCompressionModel()}, { new GZipCompressionModel()}, {new PureHuffmanCompressionModel()}, {new VariableIntCompressionModel()}
+                { new VerboseStringCompressionModel() },
+                { new FemtoZipCompressionModel() },
+                { new GZipDictionaryCompressionModel() },
+                { new GZipCompressionModel() },
+                { new PureHuffmanCompressionModel() },
+                { new VariableIntCompressionModel() }
         });
     }
 
@@ -89,8 +94,10 @@ public class MultiThreadCompressionTest {
             String decompressedString = decompressedBytes.toString(Charset.forName("UTF-8"));
             
             Assert.assertEquals(source, decompressedString);
+
+            compressedBytes.release();
         }
-        
+
         public void run() {
             try {
                 while (true) {
@@ -112,6 +119,8 @@ public class MultiThreadCompressionTest {
     }
     
     void testThreadedCompressionModel(CompressionModel model) throws IOException, InterruptedException {
+        System.out.println(model.getClass().getName());
+
         Random random = new Random();
         StringBuilder dict = new StringBuilder();
         for (int i = 0, count = 256 + random.nextInt(64); i < count; i++) {

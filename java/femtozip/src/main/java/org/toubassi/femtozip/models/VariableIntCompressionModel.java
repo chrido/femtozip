@@ -68,6 +68,7 @@ public class VariableIntCompressionModel extends CompressionModel {
         OutputStream bbos = new ByteBufOutputStream(compressed);
         try {
             compress(data, bbos);
+            bbos.close();
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("IOException", e);
@@ -111,12 +112,10 @@ public class VariableIntCompressionModel extends CompressionModel {
     private void compressAsNonInt(ByteBuf data, OutputStream out) throws IOException {
         out.write(padding);
         data.readBytes(out, data.readableBytes());
-        data.resetReaderIndex();
     }
     
     private ByteBuf decompressAsNonInt(ByteBuf compressedData) {
         return compressedData.slice(6, compressedData.readableBytes()-6);
-        //return Arrays.copyOfRange(compressedData, 6, compressedData.length);
     }
     
     public ByteBuf decompress(ByteBuf compressedData) {
@@ -127,17 +126,16 @@ public class VariableIntCompressionModel extends CompressionModel {
             return decompressAsNonInt(compressedData);
         }
         
-        int index = 0;
-        byte b = compressedData.getByte(index++);
+        byte b = compressedData.readByte();
         int i = b & 0x7F;
         for (int shift = 7; (b & 0x80) != 0; shift += 7) {
-          b = compressedData.getByte(index++);
+          b = compressedData.readByte();
           i |= (b & 0x7F) << shift;
         }
 
-        String s = Integer.toString(i);
+        byte[] bytes = Integer.toString(i).getBytes(Charset.forName("UTF-8"));
         ByteBuf buf = arena.buffer();
-        buf.writeBytes(s.getBytes(Charset.forName("UTF-8")));
+        buf.writeBytes(bytes);
         return buf;
     }
 }

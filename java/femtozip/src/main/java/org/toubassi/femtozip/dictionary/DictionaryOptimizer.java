@@ -59,7 +59,7 @@ public class DictionaryOptimizer {
         this(documents, PooledByteBufAllocator.DEFAULT);
     }
 
-    public byte[] optimize(int desiredLength) {
+    public ByteBuf optimize(int desiredLength) {
         suffixArray = SuffixArray.computeSuffixArray(bytes);
         lcp = SuffixArray.computeLCP(bytes, suffixArray);
         computeSubstrings();
@@ -173,7 +173,7 @@ public class DictionaryOptimizer {
         substrings.sort();
     }
 
-    protected byte[] pack(int desiredLength) {
+    protected ByteBuf pack(int desiredLength) {
 
         // First, filter out the substrings to remove overlap since
         // many of the substrings are themselves substrings of each other (e.g. 'http://', 'ttp://').
@@ -234,7 +234,10 @@ public class DictionaryOptimizer {
             packed = Arrays.copyOfRange(packed, pi, packed.length);
         }
 
-        return packed;
+        ByteBuf packedBB = arena.buffer(desiredLength);
+        packedBB.writeBytes(packed);
+
+        return packedBB;
     }
 
     /***

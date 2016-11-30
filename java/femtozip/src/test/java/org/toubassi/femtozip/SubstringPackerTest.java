@@ -91,17 +91,19 @@ public class SubstringPackerTest {
     private String pack(String s, String dict) {
         try {
             ByteBuf bytes = Unpooled.wrappedBuffer(s.getBytes("UTF-8"));
-            ByteBuf dictBytes = dict == null ? null : Unpooled.wrappedBuffer(dict.getBytes("UTF-8"));
-            
+
             VerboseStringCompressionModel model = new VerboseStringCompressionModel();
-            model.setDictionary(dictBytes);
+            if(dict != null) {
+                ByteBuf dictBytes = Unpooled.wrappedBuffer(dict.getBytes("UTF-8"));
+                model.setDictionary(dictBytes);
+            }
 
             ByteBuf compressed = model.compress(bytes);
             ByteBuf decompressed = model.decompress(compressed);
 
             Assert.assertEquals("Compressed: " + getReadable(compressed), s, getReadable(decompressed));
 
-            return getReadable(compressed);//compressed.toString(Charset.forName("UTF-8"));
+            return getReadable(compressed);
         }
         catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);

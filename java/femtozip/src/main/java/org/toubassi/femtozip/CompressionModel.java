@@ -61,11 +61,13 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
     protected PooledByteBufAllocator arena;
 
     public CompressionModel(PooledByteBufAllocator arena) {
+
         this.arena = arena;
+        dictionary = arena.buffer();
     }
 
     public CompressionModel() {
-        this.arena = PooledByteBufAllocator.DEFAULT;
+        this(PooledByteBufAllocator.DEFAULT);
     }
 
 
@@ -202,6 +204,7 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
             this.dictionary = newDictionary.slice(newDictionary.readableBytes() - maxDictionaryLength, maxDictionaryLength);
             //newDictionary.getBytes(newDictionary.readableBytes() - maxDictionaryLength, this.dictionary, maxDictionaryLength);
         }
+        dictionary.release();
         this.dictionary = newDictionary;
         packer = null;
     }
@@ -328,17 +331,15 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
 
 
     protected void buildDictionaryIfUnspecified(DocumentList documents) throws IOException {
-        if (dictionary == null) {
+        if(dictionary.readableBytes() == 0) {
+            dictionary.release();
             dictionary = (this.maxDictionaryLength != 0) ? buildDictionary(documents, this.maxDictionaryLength) : buildDictionary(documents);
         }
     }
 
     protected static ByteBuf buildDictionary(PooledByteBufAllocator arena, DocumentList documents, int maxDictionaryLength) throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(documents, arena);
-        byte[] dict = optimizer.optimize(maxDictionaryLength);
-        ByteBuf buffer = arena.buffer(dict.length);
-        buffer.writeBytes(dict);
-        return buffer;
+        return optimizer.optimize(maxDictionaryLength);
     }
 
     protected static ByteBuf buildDictionary(DocumentList documents) throws IOException {
@@ -347,9 +348,7 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
 
     protected static ByteBuf buildDictionary(DocumentList documents, int maxDictionaryLength) throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(documents);
-        byte[] dict = optimizer.optimize(maxDictionaryLength);
-
-        return Unpooled.wrappedBuffer(dict);
+        return optimizer.optimize(maxDictionaryLength);
     }
     
     protected SubstringPacker.Consumer createModelBuilder() {

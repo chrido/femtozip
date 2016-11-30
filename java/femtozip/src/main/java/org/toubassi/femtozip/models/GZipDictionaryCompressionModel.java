@@ -84,7 +84,6 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
             // Give the compressor the data to compress
             byte[] inputB = new byte[input.readableBytes()];
             input.readBytes(inputB);
-            input.resetReaderIndex();
 
             compressor.setInput(inputB);
             compressor.finish();

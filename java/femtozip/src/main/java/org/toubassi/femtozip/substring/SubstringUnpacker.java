@@ -24,7 +24,7 @@ public class SubstringUnpacker implements SubstringPacker.Consumer {
     private final PooledByteBufAllocator arena;
     private ByteBuf dictionary;
     private ByteBuf bytesOut;
-    private ByteBuf unpackedBytes;
+    //private ByteBuf unpackedBytes;
     
     public SubstringUnpacker(ByteBuf dictionary, PooledByteBufAllocator arena) {
         this.arena = arena;
@@ -37,12 +37,7 @@ public class SubstringUnpacker implements SubstringPacker.Consumer {
     }
     
     public ByteBuf getUnpackedBytes() {
-        if (unpackedBytes == null) {
-            unpackedBytes = bytesOut;
-            unpackedBytes.resetReaderIndex();
-            bytesOut = arena.buffer(1024);
-        }
-        return unpackedBytes;
+        return bytesOut;
     }
 
     public void encodeSubstring(int offset, int length, Object context) {

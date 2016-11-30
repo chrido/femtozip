@@ -25,6 +25,7 @@ public class ExampleTest {
         
         ByteBuf decompressed = model.decompress(compressed);
 
+        data.resetReaderIndex();
         Assert.assertTrue(ByteBufUtil.equals(data, decompressed));
     }
 }

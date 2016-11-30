@@ -21,14 +21,14 @@ import java.util.ArrayList;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
-import org.toubassi.femtozip.compression.CompressionTest;
-import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 
 
+@Ignore
 public class NativeCompressionModelTest {
     
     /**
@@ -45,8 +45,8 @@ public class NativeCompressionModelTest {
         model.setDictionary(dictionaryBytes);
         model.build(new ArrayDocumentList(sourceBytes));
 
-        DictionaryOptimizerTest.testBuiltModel(model, sourceBytes, 187);
-        //DictionaryOptimizerTest.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
+        RegressionTests.testBuiltModel(model, sourceBytes, 187);
+        //RegressionTests.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
         
         File modelFile = File.createTempFile("native", ".fzm");
         
@@ -73,7 +73,7 @@ public class NativeCompressionModelTest {
         for (int i = 0; i < 100; i++) {
             ByteBuf doc = generateSampleDoc((int)(Math.random() * 100) + 100);
             int i1 = doc.readableBytes();
-            DictionaryOptimizerTest.testBuiltModel(model, doc, -1);
+            RegressionTests.testBuiltModel(model, doc, -1);
         }
     }
     
