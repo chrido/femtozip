@@ -26,6 +26,8 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexReader;
 import org.toubassi.femtozip.DocumentList;
 
+import static org.toubassi.femtozip.util.FileUtil.toArrayResetReader;
+
 /**
  * This is a bit whack
  */
@@ -88,7 +90,7 @@ public class IndexDocumentList implements DocumentList {
         return fieldCounts.length == 0 ? 0 : fieldCounts[fieldCounts.length - 1];
     }
     
-    public ByteBuf get(int i) throws IOException {
+    public ByteBuf getBB(int i) throws IOException {
         i++;
         int index = Arrays.binarySearch(fieldCounts, i);
         int docId;
@@ -120,5 +122,10 @@ public class IndexDocumentList implements DocumentList {
         }
         
         return bytes;
+    }
+
+    @Override
+    public byte[] get(int i) throws IOException {
+        return toArrayResetReader(getBB(i));
     }
 }

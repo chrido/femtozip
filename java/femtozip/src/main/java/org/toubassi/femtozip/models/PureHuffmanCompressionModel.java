@@ -15,8 +15,6 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -58,7 +56,7 @@ public class PureHuffmanCompressionModel extends CompressionModel {
             int[] histogram = new int[256 + 1]; // +1 for EOF
             
             for (int i = 0, count = documents.size(); i < count; i++) {
-                ByteBuf bytes = documents.get(i);
+                ByteBuf bytes = documents.getBB(i);
                 for (int j = 0, jcount = bytes.readableBytes(); j < jcount; j++) {
                     histogram[bytes.getByte(j) & 0xff]++;
                 }

@@ -46,8 +46,7 @@ public class NativeCompressionModelTest {
         model.build(new ArrayDocumentList(sourceBytes));
 
         RegressionTests.testBuiltModel(model, sourceBytes, 187);
-        //RegressionTests.testModel(CompressionTest.PreambleString, CompressionTest.PreambleDictionary, fModel, 187);
-        
+
         File modelFile = File.createTempFile("native", ".fzm");
         
         model.save(modelFile.getPath());

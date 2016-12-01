@@ -126,7 +126,7 @@ public class NativeCompressionModel extends CompressionModel {
     }
 
     public void build(DocumentList documents) throws IOException {
-        //TODO: need to convert to netty ByteBuf
+        buildba(documents);
     }
 
     

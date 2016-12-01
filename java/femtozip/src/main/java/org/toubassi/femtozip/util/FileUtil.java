@@ -67,4 +67,13 @@ public class FileUtil {
         return StreamUtil.readAll(in);
     }
 
+    public static byte[] toArrayResetReader(ByteBuf buf) {
+
+        byte[] arr = new byte[buf.readableBytes()];
+        buf.readBytes(arr);
+        buf.resetReaderIndex();
+
+        return arr;
+    }
+
 }

@@ -18,7 +18,6 @@ package org.toubassi.femtozip;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.*;
 import org.toubassi.femtozip.substring.SubstringPacker;
@@ -172,7 +171,7 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
         // Pick the best model
 
         for (int i = 0, count = testingDocuments.size(); i < count; i++) {
-            ByteBuf data = testingDocuments.get(i);
+            ByteBuf data = testingDocuments.getBB(i);
             
             for (ModelOptimizationResult result : results) {
                 ByteBuf backingBB = pbba.buffer();
@@ -360,7 +359,7 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
             SubstringPacker modelBuildingPacker = new SubstringPacker(dictionary);
             SubstringPacker.Consumer modelBuilder = createModelBuilder();
             for (int i = 0, count = documents.size(); i < count; i++) {
-                modelBuildingPacker.pack(documents.get(i), modelBuilder, null);
+                modelBuildingPacker.pack(documents.getBB(i), modelBuilder, null);
             }
             
             return modelBuilder;

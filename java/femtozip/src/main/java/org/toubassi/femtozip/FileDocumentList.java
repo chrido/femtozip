@@ -24,6 +24,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.util.FileUtil;
 
+import static org.toubassi.femtozip.util.FileUtil.toArrayResetReader;
+
 
 public class FileDocumentList implements DocumentList {
     private String basePath;
@@ -53,10 +55,15 @@ public class FileDocumentList implements DocumentList {
         return files.size();
     }
     
-    public ByteBuf get(int i) throws IOException {
+    public ByteBuf getBB(int i) throws IOException {
         return data != null ? data.get(i) : loadFile(i);
     }
-    
+
+    @Override
+    public byte[] get(int i) throws IOException {
+        return toArrayResetReader(getBB(i));
+    }
+
     private ByteBuf loadFile(int i) throws IOException {
         String path = basePath == null ? files.get(i) : (basePath + File.separator + files.get(i));
         return Unpooled.wrappedBuffer(FileUtil.readFile(path));

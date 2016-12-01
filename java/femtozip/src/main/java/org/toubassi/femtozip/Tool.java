@@ -16,7 +16,6 @@
 package org.toubassi.femtozip;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -28,7 +27,6 @@ import java.util.Random;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 import org.toubassi.femtozip.util.FileUtil;
@@ -106,7 +104,7 @@ public class Tool  {
         int dataSize = 0;
         int compressedSize = 0;
         for (int i = 0, count = docs.size(); i < count; i++) {
-            ByteBuf bytes = docs.get(i);
+            ByteBuf bytes = docs.getBB(i);
             
             long startCompress = System.nanoTime();
             ByteBuf compressed = model.compress(bytes);

@@ -43,7 +43,7 @@ public class DictionaryOptimizer {
         starts = new int[documents.size()];
 
         for (int i = 0, count = documents.size(); i < count; i++) {
-            ByteBuf document = documents.get(i);
+            ByteBuf document = documents.getBB(i);
             byte[] arr = new byte[document.readableBytes()];
             document.readBytes(arr);
             document.resetReaderIndex();
@@ -132,7 +132,7 @@ public class DictionaryOptimizer {
                         int scoreCount = uniqueDocIds.size();
 
                         // You might think that its better to just clear uniqueDocIds,
-                        // but actually this set can get very large, and calling clear
+                        // but actually this set can getBB very large, and calling clear
                         // loops over all entries in the internal array and sets them to
                         // null, doesn't even use Arrays.fill, and unfortunately doesn't
                         // short circuit out if size is already 0 (which is a common case

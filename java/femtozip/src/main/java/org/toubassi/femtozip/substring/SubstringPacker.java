@@ -70,7 +70,7 @@ public class SubstringPacker {
             }
             
             if (previousMatchLength > 0 && bestMatchLength <= previousMatchLength) {
-                // We didn't get a match or we got one and the previous match is better
+                // We didn't getBB a match or we got one and the previous match is better
                 consumer.encodeSubstring(-(curr + dictLen - 1 - previousMatchIndex), previousMatchLength, consumerContext);
                 
                 // Make sure locations are added for the match.  This allows repetitions to always

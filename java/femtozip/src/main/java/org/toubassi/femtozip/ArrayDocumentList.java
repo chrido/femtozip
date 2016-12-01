@@ -18,8 +18,11 @@ package org.toubassi.femtozip;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+
+import static org.toubassi.femtozip.util.FileUtil.toArrayResetReader;
 
 public class ArrayDocumentList implements DocumentList {
     
@@ -27,7 +30,7 @@ public class ArrayDocumentList implements DocumentList {
     
     public ArrayDocumentList(String... documents) {
         try {
-            this.docs = new ArrayList<ByteBuf>(documents.length);
+            this.docs = new ArrayList<>(documents.length);
             for (String string : documents) {
                     docs.add(Unpooled.wrappedBuffer(string.getBytes("UTF-8")));
             }
@@ -49,7 +52,11 @@ public class ArrayDocumentList implements DocumentList {
         return docs.size();
     }
 
-    public ByteBuf get(int i) {
+    public ByteBuf getBB(int i) {
         return docs.get(i);
+    }
+
+    public byte[] get(int i) throws IOException {
+        return toArrayResetReader(getBB(i));
     }
 }

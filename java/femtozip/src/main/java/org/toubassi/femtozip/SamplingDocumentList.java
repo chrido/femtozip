@@ -19,6 +19,8 @@ import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 
+import static org.toubassi.femtozip.util.FileUtil.toArrayResetReader;
+
 public class SamplingDocumentList implements DocumentList {
     
     private DocumentList documents;
@@ -46,9 +48,13 @@ public class SamplingDocumentList implements DocumentList {
     }
 
     @Override
-    public ByteBuf get(int i) throws IOException {
+    public ByteBuf getBB(int i) throws IOException {
         i = Math.min(documents.size() - 1, i * numPartitions + partition);
-        return documents.get(i);
+        return documents.getBB(i);
     }
 
+    @Override
+    public byte[] get(int i) throws IOException {
+        return toArrayResetReader(getBB(i));
+    }
 }
