@@ -41,6 +41,7 @@ import org.toubassi.femtozip.DocumentList;
  * JUnit test case in the source distribution of FemtoZip at
  * http://github.com/gtoubassi/femtozip
  */
+@Deprecated
 public class NativeCompressionModel extends CompressionModel {
     
     private static boolean nativeLibraryLoaded;
