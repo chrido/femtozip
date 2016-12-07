@@ -15,9 +15,11 @@
  */
 package org.toubassi.femtozip;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+
+
+import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.*;
 import org.toubassi.femtozip.substring.SubstringPacker;
@@ -54,19 +56,12 @@ import java.util.List;
  */
 public abstract class CompressionModel implements SubstringPacker.Consumer {
     
-    protected ByteBuf dictionary;
+    protected ByteBuffer dictionary;
     protected SubstringPacker packer;
     private int maxDictionaryLength;
-    protected PooledByteBufAllocator arena;
-
-    public CompressionModel(PooledByteBufAllocator arena) {
-
-        this.arena = arena;
-        dictionary = arena.buffer();
-    }
 
     public CompressionModel() {
-        this(PooledByteBufAllocator.DEFAULT);
+        dictionary = ByteBuffer.allocate(0);
     }
 
 
@@ -133,15 +128,13 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
     
     public static CompressionModel buildOptimalModel(DocumentList documents, List<ModelOptimizationResult> results, CompressionModel[] competingModels, boolean verify) throws IOException {
 
-        PooledByteBufAllocator pbba = PooledByteBufAllocator.DEFAULT;
-        
         if (competingModels == null || competingModels.length == 0) {
             competingModels = new CompressionModel[5];
-            competingModels[0] = new FemtoZipCompressionModel(pbba);
-            competingModels[1] = new PureHuffmanCompressionModel(pbba);
-            competingModels[2] = new GZipCompressionModel(pbba);
-            competingModels[3] = new GZipDictionaryCompressionModel(pbba);
-            competingModels[4] = new VariableIntCompressionModel(pbba);
+            competingModels[0] = new FemtoZipCompressionModel();
+            competingModels[1] = new PureHuffmanCompressionModel();
+            competingModels[2] = new GZipCompressionModel();
+            competingModels[3] = new GZipDictionaryCompressionModel();
+            competingModels[4] = new VariableIntCompressionModel();
         }
         
         if (results == null) {
@@ -160,7 +153,7 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
         SamplingDocumentList testingDocuments = new SamplingDocumentList(documents, 2, 1);
         
         // Build the dictionary once to avoid rebuilding for each model.
-        ByteBuf dictionary = buildDictionary(pbba, trainingDocuments, 64*1024);
+        ByteBuffer dictionary = buildDictionary(trainingDocuments, 64*1024);
 
         // Build each model out
         for (ModelOptimizationResult result : results) {
@@ -171,23 +164,23 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
         // Pick the best model
 
         for (int i = 0, count = testingDocuments.size(); i < count; i++) {
-            ByteBuf data = testingDocuments.getBB(i);
+            ByteBuffer data = testingDocuments.getBB(i);
             
             for (ModelOptimizationResult result : results) {
-                ByteBuf backingBB = pbba.buffer();
-                try(ByteBufOutputStream bbos = new ByteBufOutputStream(backingBB)) {
+                ByteBuffer backingBB = ByteBuffer.allocate(1000);
+                try(ByteBufferOutputStream bbos = new ByteBufferOutputStream(backingBB, true)) {
                     result.model.compress(data, bbos);
                 }
                 
                 if (verify) {
-                    ByteBuf decompressed = result.model.decompress(backingBB);
+                    ByteBuffer decompressed = result.model.decompress(backingBB);
                     if (!decompressed.equals(data)) {
                         throw new RuntimeException("Compress/Decompress round trip failed for " + result.model.getClass().getSimpleName());
                     }
                 }
                 
-                result.totalCompressedSize += backingBB.readableBytes();
-                result.totalDataSize += data.readableBytes();
+                result.totalCompressedSize += backingBB.remaining();
+                result.totalDataSize += data.remaining();
             }
         }
         
@@ -197,18 +190,22 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
         return bestResult.model;
     }
     
-    public void setDictionary(ByteBuf newDictionary) {
-        if (maxDictionaryLength > 0 && newDictionary.readableBytes()> maxDictionaryLength) {
+    public void setDictionary(ByteBuffer newDictionary) {
+        if (maxDictionaryLength > 0 && newDictionary.remaining()> maxDictionaryLength) {
             // We chop off the front as important strings are packed towards the end for shorter lengths/offsets
-            this.dictionary = newDictionary.slice(newDictionary.readableBytes() - maxDictionaryLength, maxDictionaryLength);
-            //newDictionary.getBytes(newDictionary.readableBytes() - maxDictionaryLength, this.dictionary, maxDictionaryLength);
+            this.dictionary = ByteBuffer.allocate(maxDictionaryLength);
+            newDictionary.position(newDictionary.remaining() - maxDictionaryLength);
+
+            for(int i = 0; i < maxDictionaryLength; i++) {
+                this.dictionary.put(newDictionary.get());
+            }
+            //newDictionary.getBytes(newDictionary.remaining() - maxDictionaryLength, this.dictionary, maxDictionaryLength);
         }
-        dictionary.release();
         this.dictionary = newDictionary;
         packer = null;
     }
     
-    public ByteBuf getDictionary() {
+    public ByteBuffer getDictionary() {
         return dictionary;
     }
 
@@ -236,9 +233,14 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
             setDictionary(null);
         }
         else {
-            ByteBuf dictionary = arena.buffer(dictionaryLength);
-            int totalRead = dictionary.writeBytes(in, dictionaryLength);
-            if (totalRead != dictionaryLength) {
+            ByteBuffer dictionary = ByteBuffer.allocate(dictionaryLength);
+            //ByteBuffer dictionary = arena.buffer(dictionaryLength);
+            //int totalRead = dictionary.writeBytes(in, dictionaryLength);
+            int i; //TODO: error handling
+            for(i = 0; i < dictionaryLength; i++){
+                dictionary.put(in.readByte());
+            }
+            if (i != dictionaryLength) {
                 throw new IOException("Bad model in stream.  Could not read dictionary of length " + dictionaryLength);
             }
 
@@ -252,9 +254,13 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
             out.writeInt(-1);
         }
         else {
-            out.writeInt(dictionary.readableBytes());
-            dictionary.readBytes(out, dictionary.readableBytes());
-            dictionary.resetReaderIndex();
+            out.writeInt(dictionary.remaining());
+            while(dictionary.hasRemaining()) {
+                out.write(dictionary.get());
+            }
+            dictionary.position(0);
+            //dictionary.readBytes(out, dictionary.remaining());
+            //dictionary.resetReaderIndex();
         }
     }
     
@@ -300,7 +306,7 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
     
     public abstract void build(DocumentList documents) throws IOException;
 
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
         getSubstringPacker().pack(data, this, null);
     }
     
@@ -309,47 +315,41 @@ public abstract class CompressionModel implements SubstringPacker.Consumer {
      * @param data The data to decompress.
      * @return The decompressed data
      */
-    public abstract ByteBuf decompress(ByteBuf compressedData);
+    public abstract ByteBuffer decompress(ByteBuffer compressedData);
 
     /**
      * Compresses the specified data.
      * @param data The data to compress.
      * @return The compressed data
      */
-    public ByteBuf compress(ByteBuf data) {
-        ByteBuf compressed = arena.buffer();
-        OutputStream bbos = new ByteBufOutputStream(compressed);
+    public ByteBuffer compress(ByteBuffer data) {
+        ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() * 0.5));
+        ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
         try {
             compress(data, bbos);
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("IOException", e);
         }
-        return compressed;
+        return bbos.toByteBuffer();
     }
 
 
     protected void buildDictionaryIfUnspecified(DocumentList documents) throws IOException {
-        if(dictionary.readableBytes() == 0) {
-            dictionary.release();
+        if(dictionary.remaining() == 0) {
             dictionary = (this.maxDictionaryLength != 0) ? buildDictionary(documents, this.maxDictionaryLength) : buildDictionary(documents);
         }
     }
 
-    protected static ByteBuf buildDictionary(PooledByteBufAllocator arena, DocumentList documents, int maxDictionaryLength) throws IOException {
-        DictionaryOptimizer optimizer = new DictionaryOptimizer(documents, arena);
-        return optimizer.optimize(maxDictionaryLength);
-    }
-
-    protected static ByteBuf buildDictionary(DocumentList documents) throws IOException {
-        return buildDictionary(documents, 64*1024);
-    }
-
-    protected static ByteBuf buildDictionary(DocumentList documents, int maxDictionaryLength) throws IOException {
+    protected static ByteBuffer buildDictionary(DocumentList documents, int maxDictionaryLength) throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(documents);
         return optimizer.optimize(maxDictionaryLength);
     }
-    
+
+    protected static ByteBuffer buildDictionary(DocumentList documents) throws IOException {
+        return buildDictionary(documents, 64*1024);
+    }
+
     protected SubstringPacker.Consumer createModelBuilder() {
         return null;
     }

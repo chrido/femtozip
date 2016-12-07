@@ -19,8 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 import org.junit.Ignore;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
@@ -39,8 +39,8 @@ public class NativeCompressionModelTest {
         NativeCompressionModel model = new NativeCompressionModel();
         FemtoZipCompressionModel fModel = new FemtoZipCompressionModel();
 
-        ByteBuf sourceBytes = Unpooled.wrappedBuffer(CompressionTest.PreambleString.getBytes());
-        ByteBuf dictionaryBytes = Unpooled.wrappedBuffer(CompressionTest.PreambleDictionary.getBytes());
+        ByteBuffer sourceBytes = ByteBuffer.wrap(CompressionTest.PreambleString.getBytes());
+        ByteBuffer dictionaryBytes = ByteBuffer.wrap(CompressionTest.PreambleDictionary.getBytes());
 
         model.setDictionary(dictionaryBytes);
         model.build(new ArrayDocumentList(sourceBytes));
@@ -61,7 +61,7 @@ public class NativeCompressionModelTest {
     public void testNativeModel2() throws IOException {
         
         // Generate sample documents to train
-        ArrayList<ByteBuf> trainingDocs = new ArrayList<>();
+        ArrayList<ByteBuffer> trainingDocs = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             trainingDocs.add(generateSampleDoc((int)(Math.random() * 100) + 100));
         }
@@ -70,26 +70,26 @@ public class NativeCompressionModelTest {
         model.build(new ArrayDocumentList(trainingDocs));
         
         for (int i = 0; i < 100; i++) {
-            ByteBuf doc = generateSampleDoc((int)(Math.random() * 100) + 100);
-            int i1 = doc.readableBytes();
+            ByteBuffer doc = generateSampleDoc((int)(Math.random() * 100) + 100);
+            int i1 = doc.remaining();
             RegressionTests.testBuiltModel(model, doc, -1);
         }
     }
     
-    private ByteBuf generateSampleDoc(int length) {
-        ByteBuf out = Unpooled.buffer();
+    private ByteBuffer generateSampleDoc(int length) {
+        ByteBuffer out = ByteBuffer.allocate(length);
         
         for (int i = 0; i < length; i++) {
             if (Math.random() < .1) {
-                out.writeByte(0);
-                out.writeByte(1);
-                out.writeByte(2);
-                out.writeByte(3);
-                out.writeByte(4);
-                out.writeByte(5);
+                out.put((byte) 0);
+                out.put((byte) 1);
+                out.put((byte) 2);
+                out.put((byte) 3);
+                out.put((byte) 4);
+                out.put((byte) 5);
             }
             else {
-                out.writeByte((int)(Math.random() * 0xff));
+                out.put((byte) (Math.random() * 0xff));
             }
         }
         

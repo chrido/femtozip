@@ -15,8 +15,8 @@
  */
 package org.toubassi.femtozip.dictionary;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.ByteBuffer;
+
 import org.toubassi.femtozip.DocumentList;
 
 import java.io.ByteArrayOutputStream;
@@ -30,36 +30,34 @@ import java.util.Set;
 
 public class DictionaryOptimizer {
 
-    private final PooledByteBufAllocator arena;
     private SubstringArray substrings;
     private byte[] bytes;
     private int[] suffixArray;
     private int[] lcp;
     private int[] starts;
 
-    public DictionaryOptimizer(DocumentList documents, PooledByteBufAllocator arena) throws IOException {
-        this.arena = arena;
+    public DictionaryOptimizer(DocumentList documents) throws IOException {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         starts = new int[documents.size()];
 
         for (int i = 0, count = documents.size(); i < count; i++) {
-            ByteBuf document = documents.getBB(i);
-            byte[] arr = new byte[document.readableBytes()];
-            document.readBytes(arr);
-            document.resetReaderIndex();
+            ByteBuffer document = documents.getBB(i);
+
+            while(document.hasRemaining()){
+                bytesOut.write(document.get());
+            }
+            //byte[] arr = new byte[document.remaining()];
+            //document.put(arr);
+            //document.flip();
 
             starts[i] = bytesOut.size();
-            bytesOut.write(arr);
+            //bytesOut.write(arr);
         }
 
         bytes = bytesOut.toByteArray();
     }
 
-    public DictionaryOptimizer(DocumentList documents) throws IOException {
-        this(documents, PooledByteBufAllocator.DEFAULT);
-    }
-
-    public ByteBuf optimize(int desiredLength) {
+    public ByteBuffer optimize(int desiredLength) {
         suffixArray = SuffixArray.computeSuffixArray(bytes);
         lcp = SuffixArray.computeLCP(bytes, suffixArray);
         computeSubstrings();
@@ -173,7 +171,7 @@ public class DictionaryOptimizer {
         substrings.sort();
     }
 
-    protected ByteBuf pack(int desiredLength) {
+    protected ByteBuffer pack(int desiredLength) {
 
         // First, filter out the substrings to remove overlap since
         // many of the substrings are themselves substrings of each other (e.g. 'http://', 'ttp://').
@@ -233,11 +231,7 @@ public class DictionaryOptimizer {
         if (pi > 0) {
             packed = Arrays.copyOfRange(packed, pi, packed.length);
         }
-
-        ByteBuf packedBB = arena.buffer(desiredLength);
-        packedBB.writeBytes(packed);
-
-        return packedBB;
+        return ByteBuffer.wrap(packed);
     }
 
     /***

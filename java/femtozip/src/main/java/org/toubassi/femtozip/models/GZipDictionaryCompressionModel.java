@@ -22,9 +22,9 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
+
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 
@@ -32,25 +32,28 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
     private byte[] gzipSizedDictionary;
     private static int GZIPMAXSIZE = (1 << 15) - 1;
 
-    public GZipDictionaryCompressionModel(PooledByteBufAllocator pbba) {
-        super(pbba);
-    }
-
     public GZipDictionaryCompressionModel() {
         super();
     }
 
-    public void setDictionary(ByteBuf dictionary) {
+    public void setDictionary(ByteBuffer dictionary) {
         super.setDictionary(dictionary);
-        if (dictionary.readableBytes() > GZIPMAXSIZE) {
+        if (dictionary.remaining() > GZIPMAXSIZE) {
             gzipSizedDictionary = new byte[GZIPMAXSIZE];
-            dictionary.readBytes(gzipSizedDictionary, dictionary.readableBytes() - GZIPMAXSIZE, GZIPMAXSIZE);
+            dictionary.position(dictionary.remaining() - GZIPMAXSIZE);
+            int i = 0;
+            while (dictionary.hasRemaining()) {
+                gzipSizedDictionary[i] = dictionary.get();
+            }
         }
         else {
-            gzipSizedDictionary = new byte[dictionary.readableBytes()];
-            dictionary.readBytes(gzipSizedDictionary);
+            gzipSizedDictionary = new byte[dictionary.remaining()];
+            int i = 0;
+            while (dictionary.hasRemaining()) {
+                gzipSizedDictionary[i] = dictionary.get();
+            }
         }
-        dictionary.resetReaderIndex();
+        dictionary.position(0);
     }
     
     public void encodeLiteral(int aByte, Object context) {
@@ -68,11 +71,11 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
     public void build(DocumentList documents) {
     }
 
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
         compress(out, dictionary, data); 
     }
 
-    protected void compress(OutputStream out, ByteBuf dictionary, ByteBuf input) throws IOException {
+    protected void compress(OutputStream out, ByteBuffer dictionary, ByteBuffer input) throws IOException {
         Deflater compressor = new Deflater();
 
         try {
@@ -82,8 +85,8 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
             }
 
             // Give the compressor the data to compress
-            byte[] inputB = new byte[input.readableBytes()];
-            input.readBytes(inputB);
+            byte[] inputB = new byte[input.remaining()];
+            //input.readBytes(inputB); //TODO
 
             compressor.setInput(inputB);
             compressor.finish();
@@ -100,10 +103,10 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
         }
     }
 
-    public ByteBuf decompress(ByteBuf compressedData) {
+    public ByteBuffer decompress(ByteBuffer compressedData) {
         try {
-            byte[] asArray = new byte[compressedData.readableBytes()];
-            compressedData.readBytes(asArray);
+            byte[] asArray = new byte[compressedData.remaining()];
+            //compressedData.readBytes(asArray); //TODO
 
             Inflater decompresser = new Inflater();
             decompresser.setInput(asArray, 0, asArray.length);
@@ -119,7 +122,7 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
                 }
             }
             decompresser.end();
-            return Unpooled.wrappedBuffer(bytesOut.toByteArray());
+            return ByteBuffer.wrap(bytesOut.toByteArray());
         }
         catch (DataFormatException e) {
             throw new RuntimeException(e);

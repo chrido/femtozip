@@ -15,12 +15,13 @@
  */
 package org.toubassi.femtozip.util;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 public class FileUtil {
     
@@ -55,10 +56,10 @@ public class FileUtil {
         return status && file.delete();
     }
     
-    public static ByteBuf readFile(File file) throws IOException {
+    public static ByteBuffer readFile(File file) throws IOException {
         FileInputStream in = new FileInputStream(file);
         // No need to buffer as StreamUtil.readAll will read in big chunks
-        return Unpooled.wrappedBuffer(StreamUtil.readAll(in));
+        return ByteBuffer.wrap(StreamUtil.readAll(in));
     }
 
     public static byte[] readFile(String path) throws IOException {
@@ -67,13 +68,38 @@ public class FileUtil {
         return StreamUtil.readAll(in);
     }
 
-    public static byte[] toArrayResetReader(ByteBuf buf) {
+    public static byte[] toArrayResetReader(ByteBuffer buf) {
 
-        byte[] arr = new byte[buf.readableBytes()];
-        buf.readBytes(arr);
-        buf.resetReaderIndex();
+        byte[] arr = new byte[buf.remaining()];
+        int i = 0;
+        while (buf.hasRemaining()) {
+            arr[i] = buf.get();
+            i++;
+        }
 
         return arr;
+    }
+
+    public static String getString(ByteBuffer buffer) {
+        byte[] bytes;
+        if(buffer.hasArray()) {
+            bytes = buffer.array();
+        } else {
+            bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+        }
+        return new String(bytes, Charset.forName("UTF-8"));
+    }
+
+    public static byte[] getBytes(ByteBuffer buffer) {
+        byte[] bytes;
+        if(buffer.hasArray()) {
+            bytes = buffer.array();
+        } else {
+            bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+        }
+        return bytes;
     }
 
 }

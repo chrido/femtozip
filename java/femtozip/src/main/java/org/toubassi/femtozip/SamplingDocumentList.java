@@ -15,7 +15,7 @@
  */
 package org.toubassi.femtozip;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import java.io.IOException;
 
@@ -48,7 +48,7 @@ public class SamplingDocumentList implements DocumentList {
     }
 
     @Override
-    public ByteBuf getBB(int i) throws IOException {
+    public ByteBuffer getBB(int i) throws IOException {
         i = Math.min(documents.size() - 1, i * numPartitions + partition);
         return documents.getBB(i);
     }

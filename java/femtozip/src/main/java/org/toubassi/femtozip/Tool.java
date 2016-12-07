@@ -25,8 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.ByteBuffer;
+
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 import org.toubassi.femtozip.util.FileUtil;
@@ -104,18 +104,18 @@ public class Tool  {
         int dataSize = 0;
         int compressedSize = 0;
         for (int i = 0, count = docs.size(); i < count; i++) {
-            ByteBuf bytes = docs.getBB(i);
+            ByteBuffer bytes = docs.getBB(i);
             
             long startCompress = System.nanoTime();
-            ByteBuf compressed = model.compress(bytes);
+            ByteBuffer compressed = model.compress(bytes);
             compressTime += System.nanoTime() - startCompress;
 
-            dataSize += bytes.readableBytes();
-            compressedSize += compressed.readableBytes();
+            dataSize += bytes.remaining();
+            compressedSize += compressed.remaining();
             
             if (verify) {
                 long startDecompress = System.nanoTime();
-                ByteBuf decompressed = model.decompress(compressed);
+                ByteBuffer decompressed = model.decompress(compressed);
                 decompressTime += System.nanoTime() - startDecompress;
 
                 if (!decompressed.equals(bytes)) {
@@ -156,12 +156,14 @@ public class Tool  {
     protected void compress(File file) throws IOException {
         System.out.println("Compressing " + file.getName());
 
-        ByteBuf data =FileUtil.readFile(file);
-        ByteBuf compressed = model.compress(data);
+        ByteBuffer data =FileUtil.readFile(file);
+        ByteBuffer compressed = model.compress(data);
         
         File outputFile = new File(file.getPath() + ".fz");
-        try(FileOutputStream out = new FileOutputStream(outputFile)) {
-            compressed.readBytes(out, compressed.readableBytes());
+        try(FileOutputStream out = new FileOutputStream(outputFile)) { //TODO: test
+            while(compressed.hasRemaining()) {
+                out.write(compressed.get());
+            }
         }
         file.delete();
     }
@@ -181,12 +183,14 @@ public class Tool  {
 
     protected void decompress(File file) throws IOException {
         System.out.println("Decompressing " + file.getName());
-        ByteBuf compressed = FileUtil.readFile(file);
-        ByteBuf data = model.decompress(compressed);
+        ByteBuffer compressed = FileUtil.readFile(file);
+        ByteBuffer data = model.decompress(compressed);
         
         File outputFile = new File(file.getPath().substring(0, file.getPath().length() - 3));
         try(FileOutputStream out = new FileOutputStream(outputFile)) {
-            compressed.readBytes(out, compressed.readableBytes());
+            while (compressed.hasRemaining()) {
+                out.write(compressed.get());
+            }
         }
         file.delete();
     }
@@ -210,11 +214,13 @@ public class Tool  {
         File dir = new File(path);
         List<String> files = Arrays.asList(dir.list());
         DocumentList documents = new FileDocumentList(path, files);
-        DictionaryOptimizer optimizer = new DictionaryOptimizer(documents, PooledByteBufAllocator.DEFAULT);
-        ByteBuf dictionary = optimizer.optimize(maxDictionarySize > 0 ? maxDictionarySize : 64 * 1024);
+        DictionaryOptimizer optimizer = new DictionaryOptimizer(documents);
+        ByteBuffer dictionary = optimizer.optimize(maxDictionarySize > 0 ? maxDictionarySize : 64 * 1024);
 
         try(FileOutputStream fileOut = new FileOutputStream(modelPath)) {
-            dictionary.readBytes(fileOut, dictionary.readableBytes());
+            while (dictionary.hasRemaining()) {
+                fileOut.write(dictionary.get());
+            }
         }
     }
     

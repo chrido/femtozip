@@ -1,7 +1,7 @@
 package org.toubassi.femtozip;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 import org.junit.Test;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
 
@@ -13,7 +13,7 @@ public class PerfTest {
     @Test
     public void testPerformance() throws IOException {
 
-        ArrayList<ByteBuf> documents = new ArrayList<>();
+        ArrayList<ByteBuffer> documents = new ArrayList<>();
 
 
         String line;
@@ -24,7 +24,7 @@ public class PerfTest {
                 BufferedReader br = new BufferedReader(isr);
         ) {
             while (((line = br.readLine()) != null) && (i < 200)) {
-                documents.add(Unpooled.wrappedBuffer(line.getBytes(Charset.forName("UTF-8"))));
+                documents.add(ByteBuffer.wrap(line.getBytes(Charset.forName("UTF-8"))));
 
 
                 i ++;

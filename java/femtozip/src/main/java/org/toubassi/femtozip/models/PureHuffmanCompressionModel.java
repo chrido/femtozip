@@ -20,24 +20,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
+
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
-import org.toubassi.femtozip.coding.huffman.BitOutputOutputStreamImpl;
-import org.toubassi.femtozip.coding.huffman.HuffmanDecoder;
-import org.toubassi.femtozip.coding.huffman.HuffmanEncoder;
-import org.toubassi.femtozip.coding.huffman.FrequencyHuffmanModel;
+import org.toubassi.femtozip.coding.huffman.*;
 
 public class PureHuffmanCompressionModel extends CompressionModel {
 
     private FrequencyHuffmanModel codeModel;
-
-    public PureHuffmanCompressionModel(PooledByteBufAllocator pbba) {
-        super(pbba);
-    }
 
     public PureHuffmanCompressionModel() {
         super();
@@ -56,9 +48,9 @@ public class PureHuffmanCompressionModel extends CompressionModel {
             int[] histogram = new int[256 + 1]; // +1 for EOF
             
             for (int i = 0, count = documents.size(); i < count; i++) {
-                ByteBuf bytes = documents.getBB(i);
-                for (int j = 0, jcount = bytes.readableBytes(); j < jcount; j++) {
-                    histogram[bytes.getByte(j) & 0xff]++;
+                ByteBuffer bytes = documents.getBB(i);
+                for (int j = 0, jcount = bytes.remaining(); j < jcount; j++) { //TODO: just read through
+                    histogram[bytes.get(j) & 0xff]++;
                 }
                 histogram[histogram.length - 1]++;
             }
@@ -83,24 +75,24 @@ public class PureHuffmanCompressionModel extends CompressionModel {
         throw new UnsupportedOperationException();
     }
     
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
         HuffmanEncoder encoder = new HuffmanEncoder(codeModel, new BitOutputOutputStreamImpl(out));
-        for (int i = 0, count = data.readableBytes(); i < count; i++) {
-            encoder.encodeSymbol(((int)data.getByte(i)) & 0xff);
+        for (int i = 0, count = data.remaining(); i < count; i++) {
+            encoder.encodeSymbol(((int)data.get(i)) & 0xff);
         }
         encoder.close();
         out.close();
     }
     
-    public ByteBuf decompress(ByteBuf compressedData) {
+    public ByteBuffer decompress(ByteBuffer compressedData) {
         try {
-            ByteBufInputStream bytesIn = new ByteBufInputStream(compressedData);
+            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedData);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel, bytesIn);
-            ByteBuf bytesOut = Unpooled.buffer(compressedData.readableBytes()); //TODO: Pooling
+            ByteBuffer bytesOut = ByteBuffer.allocate(compressedData.remaining()); //TODO: Pooling
             
             int nextSymbol;
             while ((nextSymbol = decoder.decodeSymbol()) != -1) {
-                bytesOut.writeByte(nextSymbol);
+                bytesOut.put((byte)nextSymbol);
             }
             return bytesOut;
         }

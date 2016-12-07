@@ -15,7 +15,7 @@
  */
 package org.toubassi.femtozip;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.toubassi.femtozip.util.FileUtil.getString;
 
 
 public class DictionaryOptimizerTest {
@@ -44,8 +45,8 @@ public class DictionaryOptimizerTest {
     @Test
     public void testDictPack() throws IOException {
         DictionaryOptimizer optimizer = new DictionaryOptimizer(new ArrayDocumentList("11111", "11111", "00000"));
-        ByteBuf dictionary = optimizer.optimize(64*1024);
-        String d = dictionary.toString(Charset.forName("UTF-8"));
+        ByteBuffer dictionary = optimizer.optimize(64*1024);
+        String d = getString(dictionary);
 
         Assert.assertEquals("000011111", d);
     }

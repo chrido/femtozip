@@ -20,9 +20,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
+
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 
@@ -48,8 +48,7 @@ public class NativeCompressionModel extends CompressionModel {
 
     protected long nativeModel;
     
-    public NativeCompressionModel(PooledByteBufAllocator arena) {
-        super(arena);
+    public NativeCompressionModel() {
         ensureNativeLibraryLoaded();
     }
 
@@ -58,11 +57,6 @@ public class NativeCompressionModel extends CompressionModel {
             System.loadLibrary("jnifzip");
             nativeLibraryLoaded = true;
         }
-    }
-
-    public NativeCompressionModel() {
-        super();
-        ensureNativeLibraryLoaded();
     }
 
     public void encodeLiteral(int aByte, Object context) {
@@ -85,11 +79,11 @@ public class NativeCompressionModel extends CompressionModel {
         throw new UnsupportedOperationException();
     }    
 
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
-        byte[] buf = new byte[data.readableBytes() * 2];
-        byte[] dataBuf = new byte[data.readableBytes()];
-        data.readBytes(dataBuf);
+        byte[] buf = new byte[data.remaining() * 2];
+        byte[] dataBuf = new byte[data.remaining()];
+        data.get(dataBuf);
         int length = compressba(dataBuf, buf);
         
         if (length < 0) {
@@ -103,12 +97,12 @@ public class NativeCompressionModel extends CompressionModel {
         out.write(buf, 0, length);
     }
 
-    public ByteBuf decompress(ByteBuf compressedData) {
+    public ByteBuffer decompress(ByteBuffer compressedData) {
         // XXX Performance.  Lots of allocations.  Lots of copying.  Use a thread local?  Change this api?
-        //TODO: Use Java Nio Bytebuf instead of copying
-        byte[] buf = new byte[compressedData.readableBytes() * 20];
-        byte[] compressedDataB = new byte[compressedData.readableBytes()];
-        compressedData.readBytes(compressedData);
+        //TODO: Use Java Nio ByteBuffer instead of copying
+        byte[] buf = new byte[compressedData.remaining() * 20];
+        byte[] compressedDataB = new byte[compressedData.remaining()];
+        compressedData.get(compressedDataB);
         int length = decompressba(compressedDataB, buf);
         
         if (length < 0) {
@@ -123,7 +117,7 @@ public class NativeCompressionModel extends CompressionModel {
             System.arraycopy(buf, 0, newbuf, 0, length);
             buf = newbuf;
         }
-        return Unpooled.wrappedBuffer(buf);
+        return ByteBuffer.wrap(buf);
     }
 
     public void build(DocumentList documents) throws IOException {

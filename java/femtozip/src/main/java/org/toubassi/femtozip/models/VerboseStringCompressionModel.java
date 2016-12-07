@@ -20,12 +20,15 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.ByteBuffer;
+
+
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
+import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
+
+import static org.toubassi.femtozip.util.FileUtil.getString;
 
 public class VerboseStringCompressionModel extends CompressionModel {
 
@@ -33,36 +36,33 @@ public class VerboseStringCompressionModel extends CompressionModel {
         super();
     }
 
-    public VerboseStringCompressionModel(PooledByteBufAllocator arena) {
-        super(arena);
-    }
-
     public void build(DocumentList documents) throws IOException {
         buildDictionaryIfUnspecified(documents);
     }
 
     @Override
-    public ByteBuf compress(ByteBuf data) {
-        ByteBuf compressed = arena.buffer();
-        OutputStream bbos = new ByteBufOutputStream(compressed);
+    public ByteBuffer compress(ByteBuffer data) {
+        ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() * 0.5));
+        ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
         try {
             compress(data, bbos);
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("IOException", e);
         }
+        ByteBuffer bb = bbos.toByteBuffer();
 
-        return compressed;
+        return bb;
     }
 
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
         getSubstringPacker().pack(data, this, new PrintWriter(out));
     }
 
-    public ByteBuf decompress(ByteBuf compressedData) {
-        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, arena);
+    public ByteBuffer decompress(ByteBuffer compressedData) {
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
 
-        String source = compressedData.toString(Charset.forName("UTF-8"));
+        String source = getString(compressedData);
         for (int i = 0, count = source.length(); i < count; i++) {
             char ch = source.charAt(i);
             if (ch == '<') {

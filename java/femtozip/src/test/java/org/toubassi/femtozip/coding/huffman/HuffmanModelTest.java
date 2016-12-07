@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -37,10 +37,10 @@ public class HuffmanModelTest {
     }
     
     public void testString(String string, boolean allSymbolsSampled) throws IOException {
-        ByteBuf dataBytes = Unpooled.wrappedBuffer(string.getBytes("UTF-8"));
-        int[] data = new int[dataBytes.readableBytes()];
-        for (int i = 0, count = dataBytes.readableBytes(); i < count; i++) {
-            data[i] = ((int)dataBytes.getByte(i)) & 0xff;
+        ByteBuffer dataBytes = ByteBuffer.wrap(string.getBytes("UTF-8"));
+        int[] data = new int[dataBytes.remaining()];
+        for (int i = 0, count = dataBytes.remaining(); i < count; i++) {
+            data[i] = ((int)dataBytes.get(i)) & 0xff;
         }
         int[] histogram = FrequencyHuffmanModel.computeHistogramWithEOFSymbol(dataBytes);
         

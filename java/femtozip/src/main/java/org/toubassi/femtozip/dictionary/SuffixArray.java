@@ -21,7 +21,7 @@
  */
 package org.toubassi.femtozip.dictionary;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import java.io.PrintStream;
 import java.util.Arrays;

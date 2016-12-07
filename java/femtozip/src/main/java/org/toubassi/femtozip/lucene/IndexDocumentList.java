@@ -19,8 +19,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexReader;
@@ -90,7 +90,7 @@ public class IndexDocumentList implements DocumentList {
         return fieldCounts.length == 0 ? 0 : fieldCounts[fieldCounts.length - 1];
     }
     
-    public ByteBuf getBB(int i) throws IOException {
+    public ByteBuffer getBB(int i) throws IOException {
         i++;
         int index = Arrays.binarySearch(fieldCounts, i);
         int docId;
@@ -110,15 +110,15 @@ public class IndexDocumentList implements DocumentList {
         Field fields[] = doc.getFields(fieldName);
         Field field = fields[fieldIndex];
 
-        ByteBuf bytes;
+        ByteBuffer bytes;
 
         if (field.isBinary()) {
-            bytes = Unpooled.buffer(field.getBinaryLength()); //TODO: pooling
+            bytes = ByteBuffer.allocate(field.getBinaryLength()); //TODO: pooling
             System.arraycopy(field.getBinaryValue(), field.getBinaryOffset(), bytes, 0, field.getBinaryLength());
         }
         else {
             String value = field.stringValue();
-            bytes = Unpooled.wrappedBuffer(value.getBytes("UTF-8"));
+            bytes = ByteBuffer.wrap(value.getBytes("UTF-8"));
         }
         
         return bytes;

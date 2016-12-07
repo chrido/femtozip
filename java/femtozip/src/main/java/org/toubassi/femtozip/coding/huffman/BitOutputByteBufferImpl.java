@@ -1,15 +1,15 @@
 package org.toubassi.femtozip.coding.huffman;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import java.io.IOException;
 
-public class BitOutputByteBufImpl implements BitOutput {
-    private final ByteBuf out;
+public class BitOutputByteBufferImpl implements BitOutput {
+    private final ByteBuffer out;
     private int buffer;
     private int count;
 
-    public BitOutputByteBufImpl(ByteBuf out) {
+    public BitOutputByteBufferImpl(ByteBuffer out) {
         this.out = out;
     }
 
@@ -20,7 +20,7 @@ public class BitOutputByteBufImpl implements BitOutput {
         }
         count++;
         if (count == 8) {
-            out.writeByte(buffer);
+            out.put((byte)buffer);
             buffer = 0;
             count = 0;
         }
@@ -29,7 +29,7 @@ public class BitOutputByteBufImpl implements BitOutput {
     @Override
     public void flush() throws IOException {
         if (count > 0) {
-            out.writeByte(buffer);
+            out.put((byte)buffer);
             buffer = 0;
             count = 0;
         }

@@ -15,7 +15,7 @@
  */
 package org.toubassi.femtozip.dictionary;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import java.util.Arrays;
 
@@ -150,8 +150,8 @@ public class SubstringArray {
         
         for (int i = prefixes[index1], n = prefixes[index1] + length1 - length2 + 1; i < n; i++) {
             boolean found = true;
-            /*ByteBuf sliceI = s.slice(i, length2);
-            ByteBuf sliceJ = s.slice(prefixes[index2], length2);
+            /*ByteBuffer sliceI = s.slice(i, length2);
+            ByteBuffer sliceJ = s.slice(prefixes[index2], length2);
 
             while (sliceI.isReadable()) {
                 if(sliceI.readByte() != sliceJ.readByte()) {

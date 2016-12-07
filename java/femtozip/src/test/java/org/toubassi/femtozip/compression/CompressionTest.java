@@ -20,8 +20,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
@@ -32,6 +32,8 @@ import org.toubassi.femtozip.models.FemtoZipCompressionModel;
 import org.toubassi.femtozip.models.PureHuffmanCompressionModel;
 import org.toubassi.femtozip.models.VariableIntCompressionModel;
 import org.toubassi.femtozip.models.VerboseStringCompressionModel;
+
+import static org.toubassi.femtozip.util.FileUtil.getString;
 
 
 public class CompressionTest {
@@ -57,18 +59,18 @@ public class CompressionTest {
         Assert.assertEquals("an a ", dictionary);
     }
 
-    private static String dictionaryToString(ByteBuf dictionary) {
-        return dictionary.toString(Charset.forName("UTF-8"));
+    private static String dictionaryToString(ByteBuffer dictionary) {
+        return getString(dictionary);
     }
 
     @Test
     public void testDocumentUniquenessScoring() throws IOException {
         CompressionModel model = new FemtoZipCompressionModel();
-        ArrayList<ByteBuf> documents = new ArrayList<>();
-        documents.add(Unpooled.wrappedBuffer(new String("garrick1garrick2garrick3garrick4garrick").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("xtoubassigarrick").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("ytoubassi").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("ztoubassi").getBytes("UTF-8")));
+        ArrayList<ByteBuffer> documents = new ArrayList<>();
+        documents.add(ByteBuffer.wrap(new String("garrick1garrick2garrick3garrick4garrick").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("xtoubassigarrick").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("ytoubassi").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("ztoubassi").getBytes("UTF-8")));
         
         model.build(new ArrayDocumentList(documents));
         
@@ -79,13 +81,13 @@ public class CompressionTest {
     @Test
     public void testNonexistantStrings() throws IOException {
         CompressionModel model = new FemtoZipCompressionModel();
-        ArrayList<ByteBuf> documents = new ArrayList<>();
-        documents.add(Unpooled.wrappedBuffer(new String("http://espn.de").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("http://popsugar.de").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("http://google.de").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("http://yahoo.de").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("gtoubassi").getBytes("UTF-8")));
-        documents.add(Unpooled.wrappedBuffer(new String("gtoubassi").getBytes("UTF-8")));
+        ArrayList<ByteBuffer> documents = new ArrayList<>();
+        documents.add(ByteBuffer.wrap(new String("http://espn.de").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("http://popsugar.de").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("http://google.de").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("http://yahoo.de").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("gtoubassi").getBytes("UTF-8")));
+        documents.add(ByteBuffer.wrap(new String("gtoubassi").getBytes("UTF-8")));
         
         model.build(new ArrayDocumentList(documents));
         
@@ -97,18 +99,17 @@ public class CompressionTest {
     @Test
     public void testVariableIntCompressionModel() throws IOException {
         String source = "12345";
-        ByteBuf sourceBytes = Unpooled.wrappedBuffer(source.getBytes("UTF-8"));
+        ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes("UTF-8"));
         VariableIntCompressionModel model = new VariableIntCompressionModel();
         model.build(new ArrayDocumentList(sourceBytes));
         
-        ByteBuf compressedBytes = model.compress(sourceBytes);
+        ByteBuffer compressedBytes = model.compress(sourceBytes);
 
-        Assert.assertEquals(2, compressedBytes.readableBytes());
+        Assert.assertEquals(2, compressedBytes.remaining());
 
-        ByteBuf decompressedBytes = model.decompress(compressedBytes);
-        String decompressedString = decompressedBytes.toString(Charset.forName("UTF-8"));
+        ByteBuffer decompressedBytes = model.decompress(compressedBytes);
+        String decompressedString = getString(decompressedBytes);
         
         Assert.assertEquals(source, decompressedString);
-        
     }
 }

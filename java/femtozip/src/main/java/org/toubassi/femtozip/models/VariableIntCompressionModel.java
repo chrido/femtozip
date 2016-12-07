@@ -23,18 +23,18 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
+
+
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
+import org.toubassi.femtozip.coding.huffman.BitOutputByteBufferImpl;
+import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
+
+import static org.toubassi.femtozip.util.FileUtil.getString;
 
 public class VariableIntCompressionModel extends CompressionModel {
-
-    public VariableIntCompressionModel(PooledByteBufAllocator pbba) {
-        super(pbba);
-    }
 
     public VariableIntCompressionModel() {
         super();
@@ -63,38 +63,37 @@ public class VariableIntCompressionModel extends CompressionModel {
     }
 
     @Override
-    public ByteBuf compress(ByteBuf data) {
-        ByteBuf compressed = arena.buffer();
-        OutputStream bbos = new ByteBufOutputStream(compressed);
+    public ByteBuffer compress(ByteBuffer data) {
+        ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() *0.8)); //Estimate
+        ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
         try {
             compress(data, bbos);
-            bbos.close();
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("IOException", e);
         }
 
-        return compressed;
+        return bbos.toByteBuffer();
     }
 
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
-        if (data.readableBytes() == 0) {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
+        if (data.remaining() == 0) {
             return;
         }
         // If its too big to hold an int, or it has a leading 0, we can't do it (leading zeros will get lost in the encoding).
-        if (data.readableBytes() > 10 || data.getByte(0) == '0') {
+        if (data.remaining() > 10 || data.get(0) == '0') {
             compressAsNonInt(data, out);
             return;
         }
         
-        for (int i = 0, count = data.readableBytes(); i < count; i++) {
-            if (data.getByte(i) < '0' || data.getByte(i) > '9') {
+        for (int i = 0, count = data.remaining(); i < count; i++) {
+            if (data.get(i) < '0' || data.get(i) > '9') {
                 compressAsNonInt(data, out);
                 return;
             }
         }
         
-        long l = Long.parseLong(data.toString(Charset.forName("UTF-8")));
+        long l = Long.parseLong(getString(data));
         int i = (int)l;
         if (i != l) {
             compressAsNonInt(data, out);
@@ -109,34 +108,37 @@ public class VariableIntCompressionModel extends CompressionModel {
     
     private static byte[] padding = new byte[6];
     
-    private void compressAsNonInt(ByteBuf data, OutputStream out) throws IOException {
+    private void compressAsNonInt(ByteBuffer data, OutputStream out) throws IOException {
         out.write(padding);
-        data.readBytes(out, data.readableBytes());
+        while (data.hasRemaining()){
+            out.write(data.get());
+        }
     }
     
-    private ByteBuf decompressAsNonInt(ByteBuf compressedData) {
-        //ByteBuf slice = compressedData.slice();
-        return compressedData.retainedSlice(6, compressedData.readableBytes() - 6);
+    private ByteBuffer decompressAsNonInt(ByteBuffer compressedData) {
+        //ByteBuffer slice = compressedData.slice();
+        byte[] toreturn = new byte[compressedData.remaining() - 6];
+        compressedData.position(6);
+        compressedData.get(toreturn);
+        return ByteBuffer.wrap(toreturn);
     }
     
-    public ByteBuf decompress(ByteBuf compressedData) {
-        if (compressedData.readableBytes() == 0) {
+    public ByteBuffer decompress(ByteBuffer compressedData) {
+        if (compressedData.remaining() == 0) {
             return compressedData;
         }
-        if (compressedData.readableBytes() > 5) {
+        if (compressedData.remaining() > 5) {
             return decompressAsNonInt(compressedData);
         }
         
-        byte b = compressedData.readByte();
+        byte b = compressedData.get();
         int i = b & 0x7F;
         for (int shift = 7; (b & 0x80) != 0; shift += 7) {
-          b = compressedData.readByte();
+          b = compressedData.get();
           i |= (b & 0x7F) << shift;
         }
 
         byte[] bytes = Integer.toString(i).getBytes(Charset.forName("UTF-8"));
-        ByteBuf buf = arena.buffer();
-        buf.writeBytes(bytes);
-        return buf;
+        return ByteBuffer.wrap(bytes);
     }
 }

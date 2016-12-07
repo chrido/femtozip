@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -36,6 +36,7 @@ import org.toubassi.femtozip.models.VariableIntCompressionModel;
 import org.toubassi.femtozip.models.VerboseStringCompressionModel;
 
 import static junit.framework.TestCase.assertNull;
+import static org.toubassi.femtozip.util.FileUtil.getString;
 
 
 @RunWith(Parameterized.class)
@@ -70,10 +71,10 @@ public class MultiThreadCompressionTest {
         long runTime;
         CompressionModel model;
         String source;
-        ByteBuf dictionary;
+        ByteBuffer dictionary;
         Exception e;
         
-        public CompressionThread(long runTimeMillis, CompressionModel model, ByteBuf dictionary) {
+        public CompressionThread(long runTimeMillis, CompressionModel model, ByteBuffer dictionary) {
             runTime = runTimeMillis;
             this.model = model;
             Random random = new Random();
@@ -87,16 +88,13 @@ public class MultiThreadCompressionTest {
         }
         
         private void testModel(CompressionModel model, String source) {
-            ByteBuf sourceBytes = Unpooled.wrappedBuffer(source.getBytes());
-            ByteBuf compressedBytes = model.compress(sourceBytes);
+            ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
+            ByteBuffer compressedBytes = model.compress(sourceBytes);
 
-            ByteBuf decompressedBytes = model.decompress(compressedBytes);
-            String decompressedString = decompressedBytes.toString(Charset.forName("UTF-8"));
+            ByteBuffer decompressedBytes = model.decompress(compressedBytes);
+            String decompressedString = getString(decompressedBytes);
             
             Assert.assertEquals(source, decompressedString);
-
-            compressedBytes.release();
-            decompressedBytes.release();
         }
 
         public void run() {
@@ -127,7 +125,7 @@ public class MultiThreadCompressionTest {
         for (int i = 0, count = 256 + random.nextInt(64); i < count; i++) {
             dict.append('a' + random.nextInt(26));
         }
-        ByteBuf dictionary = Unpooled.wrappedBuffer(dict.toString().getBytes());
+        ByteBuffer dictionary = ByteBuffer.wrap(dict.toString().getBytes());
         
         model.setDictionary(dictionary);
         model.build(new ArrayDocumentList(dictionary));

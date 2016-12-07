@@ -20,9 +20,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.ByteBuffer;
+
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.coding.huffman.*;
@@ -31,15 +30,6 @@ import org.toubassi.femtozip.substring.SubstringUnpacker;
 
 public class FemtoZipCompressionModel extends CompressionModel {
     private FemtoZipHuffmanModel codeModel;
-
-
-    public FemtoZipCompressionModel(PooledByteBufAllocator arena) {
-        super(arena);
-    }
-
-    public FemtoZipCompressionModel() {
-        super();
-    }
 
     public void load(DataInputStream in) throws IOException {
         super.load(in);
@@ -60,20 +50,22 @@ public class FemtoZipCompressionModel extends CompressionModel {
         return new ModelBuilder();
     }
     
-    public void compress(ByteBuf data, OutputStream out) throws IOException {
+    public void compress(ByteBuffer data, OutputStream out) throws IOException {
         HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputOutputStreamImpl(out));
         getSubstringPacker().pack(data, this, huffmanEncoder);
 
         out.close();
     }
 
-    public ByteBuf compress(ByteBuf buf) {
-        ByteBuf compressed = PooledByteBufAllocator.DEFAULT.heapBuffer((int) (buf.readableBytes() * 0.5)); //Estimation is that the data is roughly half
+    public ByteBuffer compress(ByteBuffer buf) {
+        ByteBuffer compressed = ByteBuffer.allocate((int) (buf.remaining() * 2)); //Estimation is that the data is roughly half
 
-
-        HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputByteBufImpl(compressed));
+        HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputByteBufferImpl(compressed));
         getSubstringPacker().pack(buf, this, huffmanEncoder);
 
+        int numOfBytes = compressed.position();
+        compressed.position(0);
+        compressed.limit(numOfBytes);
 
         return compressed;
     }
@@ -118,11 +110,11 @@ public class FemtoZipCompressionModel extends CompressionModel {
         }
     }
     
-    public ByteBuf decompress(ByteBuf compressedBytes) {
+    public ByteBuffer decompress(ByteBuffer compressedBytes) {
         try {
-            ByteBufInputStream bytesIn = new ByteBufInputStream(compressedBytes);
+            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedBytes);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
-            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, arena);
+            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
         
             int nextSymbol;
             while ((nextSymbol = decoder.decodeSymbol()) != -1) {

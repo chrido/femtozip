@@ -15,7 +15,7 @@
  */
 package org.toubassi.femtozip.substring;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import java.util.Arrays;
 
@@ -23,25 +23,25 @@ public class PrefixHash {
     
     public static final int PrefixLength = 4;
     
-    final private ByteBuf buffer;
+    final private ByteBuffer buffer;
     final int[] hash;
     final int[] heap;
     
-    public PrefixHash(ByteBuf buf, boolean addToHash) {
+    public PrefixHash(ByteBuffer buf, boolean addToHash) {
         buffer = buf;
-        hash = new int[(int)(1.75 * buf.readableBytes())];
+        hash = new int[(int)(1.75 * buf.remaining())];
         Arrays.fill(hash, -1);
-        heap = new int[buf.readableBytes()];
+        heap = new int[buf.remaining()];
         Arrays.fill(heap, -1);
         if (addToHash) {
-            for (int i = 0, count = buf.readableBytes() - PrefixLength; i < count; i++) {
+            for (int i = 0, count = buf.remaining() - PrefixLength; i < count; i++) {
                 put(i);
             }
         }
     }
     
-    private int hashIndex(ByteBuf buf, int i) {
-        int code = (buf.getByte(i) & 0xff) | ((buf.getByte(i + 1) & 0xff) << 8) | ((buf.getByte(i + 2) & 0xff) << 16) | ((buf.getByte(i + 3) & 0xff) << 24);
+    private int hashIndex(ByteBuffer buf, int i) {
+        int code = (buf.get(i) & 0xff) | ((buf.get(i + 1) & 0xff) << 8) | ((buf.get(i + 2) & 0xff) << 16) | ((buf.get(i + 3) & 0xff) << 24);
         return (code & 0x7fffff) % hash.length;
     }
 
@@ -52,17 +52,17 @@ public class PrefixHash {
         hash[hashIndex] = index;
     }
 
-    public final Match getBestMatch(final int index, final ByteBuf targetBuf) {
+    public final Match getBestMatch(final int index, final ByteBuffer targetBuf) {
         int bestMatchIndex = 0;
         int bestMatchLength = 0;
         
-        final int bufLen = this.buffer.readableBytes();
+        final int bufLen = this.buffer.remaining();
         
         if (bufLen == 0) {
             return new Match(0, 0);
         }
         
-        final int targetBufLen = targetBuf.readableBytes();
+        final int targetBufLen = targetBuf.remaining();
 
         final int maxLimit = Math.min(255, targetBufLen - index);
         
@@ -85,7 +85,7 @@ public class PrefixHash {
             final int maxMatchJ = index + Math.min(maxLimit, bufLen - candidateIndex);
             int j, k;
             for (j = index, k = candidateIndex; j < maxMatchJ; j++, k++) {
-                if (this.buffer.getByte(k) != targetBuf.getByte(j)) {
+                if (this.buffer.get(k) != targetBuf.get(j)) {
                     break;
                 }
             }

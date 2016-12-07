@@ -15,7 +15,7 @@
  */
 package org.toubassi.femtozip.coding.huffman;
 
-import io.netty.buffer.ByteBuf;
+import java.nio.ByteBuffer;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -29,13 +29,14 @@ public class FrequencyHuffmanModel implements HuffmanModel {
     private Codeword[] encoding;
     private DecodeTable decoding;
     
-    public static int[] computeHistogramWithEOFSymbol(ByteBuf data) {
+    public static int[] computeHistogramWithEOFSymbol(ByteBuffer data) {
         int[] histogram = new int[256 + 1];
 
-        while (data.isReadable()) {
-            histogram[((int)data.readByte()) & 0xff]++;
+        while (data.hasRemaining()) {
+            histogram[((int)data.get()) & 0xff]++;
         }
-        data.resetReaderIndex();
+
+        data.position(0);
 
         histogram[histogram.length - 1] = 1; // EOF
         return histogram;

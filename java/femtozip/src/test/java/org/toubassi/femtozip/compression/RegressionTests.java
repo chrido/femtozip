@@ -1,8 +1,8 @@
 package org.toubassi.femtozip.compression;
 
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,9 +49,9 @@ public class RegressionTests {
 
     @Test
     public void testModel() throws IOException {
-        ByteBuf sourceBytes = Unpooled.wrappedBuffer(source.getBytes());
+        ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
         if(dictionary != null) {
-            ByteBuf dictionaryBytes = Unpooled.wrappedBuffer(dictionary.getBytes());
+            ByteBuffer dictionaryBytes = ByteBuffer.wrap(dictionary.getBytes());
             model.setDictionary(dictionaryBytes);
         }
         model.build(new ArrayDocumentList(sourceBytes));
@@ -59,19 +59,16 @@ public class RegressionTests {
         testBuiltModel(model, sourceBytes, expectedSize);
     }
 
-    public static void testBuiltModel(CompressionModel model, ByteBuf sourceBytes, int expectedSize) throws IOException {
-        ByteBuf compressedBytes = model.compress(sourceBytes);
+    public static void testBuiltModel(CompressionModel model, ByteBuffer sourceBytes, int expectedSize) throws IOException {
+        ByteBuffer compressedBytes = model.compress(sourceBytes);
 
         if (expectedSize >= 0) {
-            Assert.assertEquals(expectedSize, compressedBytes.readableBytes());
+            Assert.assertEquals(expectedSize, compressedBytes.remaining());
         }
 
-        ByteBuf decompressedBytes = model.decompress(compressedBytes);
+        ByteBuffer decompressedBytes = model.decompress(compressedBytes);
 
-        sourceBytes.resetReaderIndex();
+        sourceBytes.reset();
         Assert.assertTrue(sourceBytes.equals(decompressedBytes));
-
-        sourceBytes.release();
-        compressedBytes.release();
     }
 }
