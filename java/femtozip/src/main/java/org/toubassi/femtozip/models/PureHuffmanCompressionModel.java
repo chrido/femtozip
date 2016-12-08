@@ -88,7 +88,7 @@ public class PureHuffmanCompressionModel extends CompressionModel {
         try {
             ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedData);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel, bytesIn);
-            ByteBuffer bytesOut = ByteBuffer.allocate(compressedData.remaining()); //TODO: Pooling
+            ByteBuffer bytesOut = ByteBuffer.allocate(compressedData.remaining() * 4); //TODO: Pooling
             
             int nextSymbol;
             while ((nextSymbol = decoder.decodeSymbol()) != -1) {

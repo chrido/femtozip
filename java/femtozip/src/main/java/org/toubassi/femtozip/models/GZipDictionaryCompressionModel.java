@@ -86,7 +86,7 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
 
             // Give the compressor the data to compress
             byte[] inputB = new byte[input.remaining()];
-            //input.readBytes(inputB); //TODO
+            input.get(inputB); //TODO
 
             compressor.setInput(inputB);
             compressor.finish();
@@ -106,7 +106,7 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
     public ByteBuffer decompress(ByteBuffer compressedData) {
         try {
             byte[] asArray = new byte[compressedData.remaining()];
-            //compressedData.readBytes(asArray); //TODO
+            compressedData.get(asArray);
 
             Inflater decompresser = new Inflater();
             decompresser.setInput(asArray, 0, asArray.length);

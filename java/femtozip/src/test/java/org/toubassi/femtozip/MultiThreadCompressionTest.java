@@ -51,12 +51,12 @@ public class MultiThreadCompressionTest {
     @Parameterized.Parameters()
     public static Iterable<Object[]> data() {
         return Arrays.asList(new Object[][] {
-                { new VerboseStringCompressionModel() },
+                /*{ new VerboseStringCompressionModel() },
                 { new FemtoZipCompressionModel() },
                 { new GZipDictionaryCompressionModel() },
-                { new GZipCompressionModel() },
+                { new GZipCompressionModel() },*/
                 { new PureHuffmanCompressionModel() },
-                { new VariableIntCompressionModel() }
+                /*{ new VariableIntCompressionModel() }*/
         });
     }
 
@@ -92,29 +92,22 @@ public class MultiThreadCompressionTest {
             ByteBuffer compressedBytes = model.compress(sourceBytes);
 
             ByteBuffer decompressedBytes = model.decompress(compressedBytes);
+
             String decompressedString = getString(decompressedBytes);
-            
             Assert.assertEquals(source, decompressedString);
         }
 
         public void run() {
-            try {
-                while (true) {
-                    if (start == 0) {
-                        start = System.currentTimeMillis();
-                    }
-                    else if (System.currentTimeMillis() - start > runTime) {
-                        return;
-                    }
-                    
-                    testModel(model, source);
+            while (true) {
+                if (start == 0) {
+                    start = System.currentTimeMillis();
+                } else if (System.currentTimeMillis() - start > runTime) {
+                    return;
                 }
-            }
-            catch (Exception e){
-                this.e = e;
+
+                testModel(model, source);
             }
         }
-        
     }
     
     void testThreadedCompressionModel(CompressionModel model) throws IOException, InterruptedException {
