@@ -15,29 +15,47 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 
 import java.nio.ByteBuffer;
 
 
-
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
-import org.toubassi.femtozip.coding.huffman.BitOutputByteBufferImpl;
 import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
 
 import static org.toubassi.femtozip.util.FileUtil.getString;
 
-public class VariableIntCompressionModel extends CompressionModel {
+public class VariableIntCompressionModel implements CompressionModel {
 
     public VariableIntCompressionModel() {
         super();
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int setDictionary(ByteBuffer dictionary) {
+        return 0;
     }
 
     public void load(DataInputStream in) throws IOException {
@@ -49,25 +67,12 @@ public class VariableIntCompressionModel extends CompressionModel {
     public void build(DocumentList documents) {
     }
     
-    
-    public void encodeLiteral(int aByte, Object context) {
-        throw new UnsupportedOperationException();
-    }
 
-    public void encodeSubstring(int offset, int length, Object context) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void endEncoding(Object context) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ByteBuffer compress(ByteBuffer data) {
+    public ByteBuffer compressDeprecated(ByteBuffer data) {
         ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() *0.8)); //Estimate
         ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
         try {
-            compress(data, bbos);
+            compressDeprecated(data, bbos);
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("IOException", e);
@@ -76,7 +81,7 @@ public class VariableIntCompressionModel extends CompressionModel {
         return bbos.toByteBuffer();
     }
 
-    public void compress(ByteBuffer data, OutputStream out) throws IOException {
+    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
         if (data.remaining() == 0) {
             return;
         }
@@ -123,7 +128,7 @@ public class VariableIntCompressionModel extends CompressionModel {
         return ByteBuffer.wrap(toreturn);
     }
     
-    public ByteBuffer decompress(ByteBuffer compressedData) {
+    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
         if (compressedData.remaining() == 0) {
             return compressedData;
         }

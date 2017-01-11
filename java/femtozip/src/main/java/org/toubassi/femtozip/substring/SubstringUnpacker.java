@@ -44,14 +44,6 @@ public class SubstringUnpacker implements SubstringPacker.Consumer {
             bytesOut = new ByteOutput();
         }
         return ByteBuffer.wrap(unpackedBytes);
-        /*int position = bytesOut.position();
-        ByteBuffer newBuffer = ByteBuffer.allocate(position);
-        bytesOut.position(0);
-        bytesOut.limit(position);
-        newBuffer.put(bytesOut);
-        bytesOut.rewind();
-        newBuffer.rewind();
-        return newBuffer;*/
     }
 
     public void encodeSubstring(int offset, int length, Object context) {
@@ -85,6 +77,13 @@ public class SubstringUnpacker implements SubstringPacker.Consumer {
     }
     
     public void endEncoding(Object context) {
+    }
+
+    public int writeOut(ByteBuffer decompressedOut) {
+        byte[] unpacked = bytesOut.toByteArray();
+        decompressedOut.put(unpacked);
+
+        return unpacked.length;
     }
 
     private static class ByteOutput extends ByteArrayOutputStream {

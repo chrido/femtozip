@@ -15,8 +15,7 @@
  */
 package org.toubassi.femtozip.compression;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 
 import java.nio.ByteBuffer;
@@ -24,6 +23,9 @@ import java.nio.ByteBuffer;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
+import org.toubassi.femtozip.CompressionModel;
+import org.toubassi.femtozip.models.CompressionModelBase;
+import org.toubassi.femtozip.models.CompressionModels;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 
@@ -36,22 +38,31 @@ public class NativeCompressionModelTest {
      */
     @Test
     public void testNativeModel() throws IOException {
-        NativeCompressionModel model = new NativeCompressionModel();
-        FemtoZipCompressionModel fModel = new FemtoZipCompressionModel();
 
         ByteBuffer sourceBytes = ByteBuffer.wrap(CompressionTest.PreambleString.getBytes());
         ByteBuffer dictionaryBytes = ByteBuffer.wrap(CompressionTest.PreambleDictionary.getBytes());
 
-        model.setDictionary(dictionaryBytes);
-        model.build(new ArrayDocumentList(sourceBytes));
+        CompressionModel nativeCompressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionaryBytes, CompressionModels.Native);
 
-        RegressionTests.testBuiltModel(model, sourceBytes, 187);
+        //CompressionModel femtoZipCompressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionaryBytes, CompressionModels.FemtoZip);
+
+        RegressionTests.testBuiltModel(nativeCompressionModel, sourceBytes, 187);
 
         File modelFile = File.createTempFile("native", ".fzm");
-        
-        model.save(modelFile.getPath());
-        model = new NativeCompressionModel();
-        model.load(modelFile.getPath());
+
+        try(FileOutputStream fileOutputStream = new FileOutputStream(modelFile.getPath());
+            DataOutputStream dataOutputStream = new DataOutputStream(fileOutputStream))
+        {
+            nativeCompressionModel.save(dataOutputStream);
+        }
+
+        nativeCompressionModel = new NativeCompressionModel();
+
+        try(FileInputStream fileInputStream = new FileInputStream(modelFile.getPath());
+            DataInputStream dataInputStream = new DataInputStream(fileInputStream))
+        {
+            nativeCompressionModel.load(dataInputStream);
+        }
 
         modelFile.delete();
     }

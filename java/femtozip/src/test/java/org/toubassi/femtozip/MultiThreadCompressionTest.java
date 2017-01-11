@@ -16,7 +16,6 @@
 package org.toubassi.femtozip;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -28,12 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.toubassi.femtozip.models.GZipCompressionModel;
-import org.toubassi.femtozip.models.GZipDictionaryCompressionModel;
-import org.toubassi.femtozip.models.FemtoZipCompressionModel;
-import org.toubassi.femtozip.models.PureHuffmanCompressionModel;
-import org.toubassi.femtozip.models.VariableIntCompressionModel;
-import org.toubassi.femtozip.models.VerboseStringCompressionModel;
+import org.toubassi.femtozip.models.*;
 
 import static junit.framework.TestCase.assertNull;
 import static org.toubassi.femtozip.util.FileUtil.getString;
@@ -42,9 +36,9 @@ import static org.toubassi.femtozip.util.FileUtil.getString;
 @RunWith(Parameterized.class)
 public class MultiThreadCompressionTest {
 
-    private final CompressionModel model;
+    private final CompressionModels model;
 
-    public MultiThreadCompressionTest(CompressionModel model) {
+    public MultiThreadCompressionTest(CompressionModels model) {
         this.model = model;
     }
 
@@ -55,7 +49,7 @@ public class MultiThreadCompressionTest {
                 { new FemtoZipCompressionModel() },
                 { new GZipDictionaryCompressionModel() },
                 { new GZipCompressionModel() },*/
-                { new PureHuffmanCompressionModel() },
+                { CompressionModels.PureHuffmann },
                 /*{ new VariableIntCompressionModel() }*/
         });
     }
@@ -89,9 +83,11 @@ public class MultiThreadCompressionTest {
         
         private void testModel(CompressionModel model, String source) {
             ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
-            ByteBuffer compressedBytes = model.compress(sourceBytes);
+            ByteBuffer compressedBytes = ByteBuffer.allocate(sourceBytes.remaining());
+            model.compress(sourceBytes, compressedBytes);
 
-            ByteBuffer decompressedBytes = model.decompress(compressedBytes);
+            ByteBuffer decompressedBytes = ByteBuffer.allocate(sourceBytes.remaining());
+            model.decompress(compressedBytes, decompressedBytes);
 
             String decompressedString = getString(decompressedBytes);
             Assert.assertEquals(source, decompressedString);
@@ -110,7 +106,7 @@ public class MultiThreadCompressionTest {
         }
     }
     
-    void testThreadedCompressionModel(CompressionModel model) throws IOException, InterruptedException {
+    void testThreadedCompressionModel(CompressionModels modelType) throws IOException, InterruptedException {
         System.out.println(model.getClass().getName());
 
         Random random = new Random();
@@ -119,10 +115,9 @@ public class MultiThreadCompressionTest {
             dict.append('a' + random.nextInt(26));
         }
         ByteBuffer dictionary = ByteBuffer.wrap(dict.toString().getBytes());
-        
-        model.setDictionary(dictionary);
-        model.build(new ArrayDocumentList(dictionary));
-        
+
+        CompressionModel model = CompressionModelBase.buildModel(new ArrayDocumentList(dictionary), dictionary, modelType);
+
         ArrayList<CompressionThread> threads = new ArrayList<CompressionThread>();
         threads.add(new CompressionThread(500, model, dictionary));
         threads.add(new CompressionThread(500, model, dictionary));

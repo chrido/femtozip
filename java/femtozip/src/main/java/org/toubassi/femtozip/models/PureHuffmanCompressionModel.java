@@ -15,10 +15,7 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 
 import java.nio.ByteBuffer;
 
@@ -27,12 +24,37 @@ import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.coding.huffman.*;
 
-public class PureHuffmanCompressionModel extends CompressionModel {
+public class PureHuffmanCompressionModel implements CompressionModel {
 
     private FrequencyHuffmanModel codeModel;
 
     public PureHuffmanCompressionModel() {
         super();
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int setDictionary(ByteBuffer dictionary) {
+        return 0;
     }
 
     public void load(DataInputStream in) throws IOException {
@@ -62,20 +84,7 @@ public class PureHuffmanCompressionModel extends CompressionModel {
         }
     }
     
-    
-    public void encodeLiteral(int aByte, Object context) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void encodeSubstring(int offset, int length, Object context) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void endEncoding(Object context) {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void compress(ByteBuffer data, OutputStream out) throws IOException {
+    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
         HuffmanEncoder encoder = new HuffmanEncoder(codeModel, new BitOutputOutputStreamImpl(out));
         for (int i = 0, count = data.remaining(); i < count; i++) {
             encoder.encodeSymbol(((int)data.get(i)) & 0xff);
@@ -84,7 +93,7 @@ public class PureHuffmanCompressionModel extends CompressionModel {
         out.close();
     }
     
-    public ByteBuffer decompress(ByteBuffer compressedData) {
+    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
         try {
             ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedData);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel, bytesIn);
@@ -94,6 +103,7 @@ public class PureHuffmanCompressionModel extends CompressionModel {
             while ((nextSymbol = decoder.decodeSymbol()) != -1) {
                 bytesOut.put((byte)nextSymbol);
             }
+            bytesOut.rewind();
             return bytesOut;
         }
         catch (IOException e) {

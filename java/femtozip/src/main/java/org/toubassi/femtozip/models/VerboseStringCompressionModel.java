@@ -15,10 +15,7 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
+import java.io.*;
 
 import java.nio.ByteBuffer;
 
@@ -26,26 +23,34 @@ import java.nio.ByteBuffer;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
+import org.toubassi.femtozip.substring.SubstringPacker;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
 
 import static org.toubassi.femtozip.util.FileUtil.getString;
 
-public class VerboseStringCompressionModel extends CompressionModel {
+public class VerboseStringCompressionModel implements CompressionModel {
+
+    private final ByteBuffer dictionary;
+    private SubstringPacker subStringPacker;
+    private SubstringPackerConsumer substringPackerConsumer;
+
+    public VerboseStringCompressionModel(ByteBuffer dictionary) {
+        this.dictionary = dictionary;
+        this.subStringPacker = new SubstringPacker(dictionary);
+        substringPackerConsumer = new SubstringPackerConsumer();
+    }
 
     public VerboseStringCompressionModel() {
-        super();
+        this.dictionary = ByteBuffer.allocate(0);
+        this.subStringPacker = new SubstringPacker(this.dictionary);
+        substringPackerConsumer = new SubstringPackerConsumer();
     }
 
-    public void build(DocumentList documents) throws IOException {
-        buildDictionaryIfUnspecified(documents);
-    }
-
-    @Override
-    public ByteBuffer compress(ByteBuffer data) {
+    public ByteBuffer compressDeprecated(ByteBuffer data) {
         ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() * 0.5));
         ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
         try {
-            compress(data, bbos);
+            compressDeprecated(data, bbos);
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException("IOException", e);
@@ -55,11 +60,11 @@ public class VerboseStringCompressionModel extends CompressionModel {
         return bb;
     }
 
-    public void compress(ByteBuffer data, OutputStream out) throws IOException {
-        getSubstringPacker().pack(data, this, new PrintWriter(out));
+    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
+        this.subStringPacker.pack(data, substringPackerConsumer, new PrintWriter(out));
     }
 
-    public ByteBuffer decompress(ByteBuffer compressedData) {
+    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
         SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
 
         String source = getString(compressedData);
@@ -83,22 +88,38 @@ public class VerboseStringCompressionModel extends CompressionModel {
         return unpacker.getUnpackedBytes();
     }
 
-    public void encodeLiteral(int aByte, Object context) {
-        PrintWriter writer = (PrintWriter)context;
-        writer.print((char)aByte);
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        return 0;
     }
 
-    public void encodeSubstring(int offset, int length, Object context) {
-        PrintWriter writer = (PrintWriter)context;
-        writer.print('<');
-        writer.print(offset);
-        writer.print(',');
-        writer.print(length);
-        writer.print('>');
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        return 0;
     }
-    
-    public void endEncoding(Object context) {
-        PrintWriter writer = (PrintWriter)context;
-        writer.close();
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int setDictionary(ByteBuffer dictionary) {
+        return 0;
+    }
+
+    @Override
+    public void load(DataInputStream in) throws IOException {
+
+    }
+
+    @Override
+    public void save(DataOutputStream out) throws IOException {
+
     }
 }

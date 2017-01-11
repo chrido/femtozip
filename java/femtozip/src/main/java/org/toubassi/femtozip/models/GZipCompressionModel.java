@@ -15,29 +15,52 @@
  */
 package org.toubassi.femtozip.models;
 
+import org.toubassi.femtozip.CompressionModel;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 
+public class GZipCompressionModel implements CompressionModel {
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-
-public class GZipCompressionModel extends GZipDictionaryCompressionModel {
+    GZipDictionaryCompressionModel gZipDictionaryCompressionModel;
 
     public GZipCompressionModel() {
-        super();
+         gZipDictionaryCompressionModel = new GZipDictionaryCompressionModel(ByteBuffer.allocate(0));
     }
 
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        return this.gZipDictionaryCompressionModel.compress(decompressedIn, compressedOut);
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        return this.gZipDictionaryCompressionModel.compress(decompressedIn, compressedOut);
+    }
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        return this.gZipDictionaryCompressionModel.decompress(compressedIn, decompressedOut);
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
+        return this.gZipDictionaryCompressionModel.decompress(compressedIn, decompressedOut);
+    }
+
+    @Override
+    public int setDictionary(ByteBuffer dictionary) {
+        //No dictionary to save
+        return 0;
+    }
+
+    @Override
     public void load(DataInputStream in) throws IOException {
-        // Nothing to save.  We override so the base class doesn't save the dictionary
+        // Nothing to load
     }
 
+    @Override
     public void save(DataOutputStream out) throws IOException {
-        // Nothing to save.  We override so the base class doesn't save the dictionary
-    }
-
-    public void compress(ByteBuffer data, OutputStream out) throws IOException {
-        compress(out, null, data); 
+        // Nothing to save
     }
 }

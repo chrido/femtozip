@@ -15,6 +15,7 @@
  */
 package org.toubassi.femtozip;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import java.util.Random;
 import java.nio.ByteBuffer;
 
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
+import org.toubassi.femtozip.models.CompressionModelBase;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 import org.toubassi.femtozip.util.FileUtil;
 
@@ -55,30 +57,20 @@ public class Tool  {
     protected int maxDictionarySize = 0;
 
     protected CompressionModel buildModel(DocumentList documents) throws IOException {
-        return buildModel(documents, new ArrayList<CompressionModel.ModelOptimizationResult>());
+        return buildModel(documents, new ArrayList<CompressionModelBase.ModelOptimizationResult>());
     }
     
-    protected CompressionModel buildModel(DocumentList documents, ArrayList<CompressionModel.ModelOptimizationResult> results) throws IOException {
+    protected CompressionModel buildModel(DocumentList documents, ArrayList<CompressionModelBase.ModelOptimizationResult> results) throws IOException {
         
         long start = System.currentTimeMillis();
         
         System.out.print("Building model...");
-
-        CompressionModel[] competingModels = null;
-        if (models != null && models.length != 0) {
-            competingModels = new CompressionModel[models.length];
-            int i = 0;
-            for (String modelName : models) {
-                competingModels[i++] = CompressionModel.instantiateCompressionModel(modelName);
-            }
-        }
-        
-        model = CompressionModel.buildOptimalModel(documents, results, competingModels, true);
+        model = CompressionModelBase.buildOptimalModel(documents, results, null, true);
         
         long duration = Math.round((System.currentTimeMillis() - start)/1000d);
         System.out.println(" (" + duration + "s)");
         
-        for (CompressionModel.ModelOptimizationResult result : results) {
+        for (CompressionModelBase.ModelOptimizationResult result : results) {
             if (result.totalDataSize > 0) {
                 System.out.println(result);
             }
@@ -105,9 +97,11 @@ public class Tool  {
         int compressedSize = 0;
         for (int i = 0, count = docs.size(); i < count; i++) {
             ByteBuffer bytes = docs.getBB(i);
+            ByteBuffer compressed = ByteBuffer.allocate(bytes.remaining());
+            ByteBuffer decompressed = ByteBuffer.allocate(bytes.remaining());
             
             long startCompress = System.nanoTime();
-            ByteBuffer compressed = model.compress(bytes);
+            model.compress(bytes, compressed);
             compressTime += System.nanoTime() - startCompress;
 
             dataSize += bytes.remaining();
@@ -115,7 +109,7 @@ public class Tool  {
             
             if (verify) {
                 long startDecompress = System.nanoTime();
-                ByteBuffer decompressed = model.decompress(compressed);
+                model.decompress(compressed, decompressed);
                 decompressTime += System.nanoTime() - startDecompress;
 
                 if (!decompressed.equals(bytes)) {
@@ -130,7 +124,7 @@ public class Tool  {
         decompressTime /= 1000000;
         compressTime /= 1000000;
         String ratio = format.format(100f * compressedSize / dataSize);
-        System.out.println(ratio  + "% (" + compressedSize + "/" + dataSize + "  compressed: " + compressTime + "ms" + (verify ? (" decompress:" + decompressTime + "ms") : "") + ")\n");
+        System.out.println(ratio  + "% (" + compressedSize + "/" + dataSize + "  compressed: " + compressTime + "ms" + (verify ? (" decompressDeprecated:" + decompressTime + "ms") : "") + ")\n");
     }
     
     protected void benchmarkModel() throws IOException {
@@ -157,8 +151,9 @@ public class Tool  {
         System.out.println("Compressing " + file.getName());
 
         ByteBuffer data =FileUtil.readFile(file);
-        ByteBuffer compressed = model.compress(data);
-        
+        ByteBuffer compressed = ByteBuffer.allocate(data.remaining());
+        model.compress(data, compressed);
+
         File outputFile = new File(file.getPath() + ".fz");
         try(FileOutputStream out = new FileOutputStream(outputFile)) { //TODO: test
             while(compressed.hasRemaining()) {
@@ -184,7 +179,8 @@ public class Tool  {
     protected void decompress(File file) throws IOException {
         System.out.println("Decompressing " + file.getName());
         ByteBuffer compressed = FileUtil.readFile(file);
-        ByteBuffer data = model.decompress(compressed);
+        ByteBuffer data = ByteBuffer.allocate(compressed.remaining() * 10);
+        model.decompress(compressed, data);
         
         File outputFile = new File(file.getPath().substring(0, file.getPath().length() - 3));
         try(FileOutputStream out = new FileOutputStream(outputFile)) {
@@ -231,19 +227,23 @@ public class Tool  {
             model = nativeModel;
         }
         else {
-            model = CompressionModel.loadModel(modelPath);
+            model = CompressionModelBase.loadModel(modelPath);
         }
     }
     
     protected void saveBenchmarkModel() throws IOException {
         File modelDir = new File(modelPath);
         modelDir.getParentFile().mkdirs();
-        
-        model.save(modelPath);
+
+        try(FileOutputStream fileOut = new FileOutputStream(modelPath);
+            DataOutputStream dout = new DataOutputStream(fileOut))
+        {
+            model.save(dout);
+        }
     }
     
     protected void usage() {
-        System.out.println("Usage: [--build|--benchmark|--compress|--decompress] [--dictonly] [--maxdict num] --model path path");
+        System.out.println("Usage: [--build|--benchmark|--compressDeprecated|--decompressDeprecated] [--dictonly] [--maxdict num] --model path path");
         System.exit(1);
     }
     
@@ -258,10 +258,10 @@ public class Tool  {
             else if (arg.equals("--build")) {
                 operation = Operation.BuildModel;
             }
-            else if (arg.equals("--compress")) {
+            else if (arg.equals("--compressDeprecated")) {
                 operation = Operation.Compress;
             }
-            else if (arg.equals("--decompress")) {
+            else if (arg.equals("--decompressDeprecated")) {
                 operation = Operation.Decompress;
             }
             else if (arg.equals("--dictonly")) {

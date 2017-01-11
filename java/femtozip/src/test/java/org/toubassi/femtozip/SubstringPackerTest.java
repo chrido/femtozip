@@ -16,7 +16,6 @@
 package org.toubassi.femtozip;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 
 import java.nio.ByteBuffer;
 
@@ -93,16 +92,18 @@ public class SubstringPackerTest {
         try {
             ByteBuffer bytes = ByteBuffer.wrap(s.getBytes("UTF-8"));
 
-            VerboseStringCompressionModel model = new VerboseStringCompressionModel();
+            VerboseStringCompressionModel model;
             if(dict != null) {
                 ByteBuffer dictBytes = ByteBuffer.wrap(dict.getBytes("UTF-8"));
-                model.setDictionary(dictBytes);
+                model = new VerboseStringCompressionModel(dictBytes);
+            } else {
+                model = new VerboseStringCompressionModel();
             }
 
             System.out.println(getString(bytes));
 
-            ByteBuffer compressed = model.compress(bytes);
-            ByteBuffer decompressed = model.decompress(compressed);
+            ByteBuffer compressed = model.compressDeprecated(bytes);
+            ByteBuffer decompressed = model.decompressDeprecated(compressed);
 
             compressed.rewind();
             String compressedS = getString(compressed);

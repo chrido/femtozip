@@ -6,4 +6,6 @@ public interface BitOutput {
     void writeBit(int bit) throws IOException;
 
     void flush() throws IOException;
+
+    int getWrittenBytes();
 }

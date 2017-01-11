@@ -13,7 +13,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-package org.toubassi.femtozip.models;
+package org.toubassi.femtozip.models.femtozip;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

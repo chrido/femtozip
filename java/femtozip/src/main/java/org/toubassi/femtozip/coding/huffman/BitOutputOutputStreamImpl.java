@@ -23,9 +23,11 @@ public class BitOutputOutputStreamImpl implements BitOutput {
     private OutputStream out;
     private int buffer;
     private int count;
+    private int writtenBytes;
     
     public BitOutputOutputStreamImpl(OutputStream output) {
         out = output;
+        writtenBytes = 0;
     }
 
     @Override
@@ -36,6 +38,7 @@ public class BitOutputOutputStreamImpl implements BitOutput {
         count++;
         if (count == 8) {
             out.write(buffer);
+            writtenBytes++;
             buffer = 0;
             count = 0;
         }
@@ -45,13 +48,22 @@ public class BitOutputOutputStreamImpl implements BitOutput {
     public void flush() throws IOException {
         if (count > 0) {
             out.write(buffer);
+            writtenBytes++;
             buffer = 0;
             count = 0;
         }
     }
-    
+
+    /**
+     * Closes also the inner stream
+     * @throws IOException
+     */
     public void close() throws IOException {
         flush();
         out.close();
+    }
+
+    public int getWrittenBytes() {
+        return writtenBytes;
     }
 }

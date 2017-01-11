@@ -8,9 +8,11 @@ public class BitOutputByteBufferImpl implements BitOutput {
     private final ByteBuffer out;
     private int buffer;
     private int count;
+    private int writtenBytes;
 
     public BitOutputByteBufferImpl(ByteBuffer out) {
         this.out = out;
+        writtenBytes = 0;
     }
 
     @Override
@@ -21,6 +23,7 @@ public class BitOutputByteBufferImpl implements BitOutput {
         count++;
         if (count == 8) {
             out.put((byte)buffer);
+            writtenBytes++;
             buffer = 0;
             count = 0;
         }
@@ -30,9 +33,14 @@ public class BitOutputByteBufferImpl implements BitOutput {
     public void flush() throws IOException {
         if (count > 0) {
             out.put((byte)buffer);
+            writtenBytes++;
             buffer = 0;
             count = 0;
         }
+    }
 
+    @Override
+    public int getWrittenBytes() {
+        return writtenBytes;
     }
 }

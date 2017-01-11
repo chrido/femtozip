@@ -26,7 +26,7 @@ public class HuffmanDecoder {
     private boolean endOfStream;
     
     
-    public HuffmanDecoder(HuffmanModel model, InputStream in) throws IOException {
+    public HuffmanDecoder(HuffmanModel model, InputStream in) {
         this.in = new BitInput(in);
         this.model = model;
     }

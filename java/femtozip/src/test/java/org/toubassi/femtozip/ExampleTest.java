@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.toubassi.femtozip.models.CompressionModelBase;
 
 /**
  * A Simple API example, packaged as a unit test
@@ -18,13 +19,20 @@ public class ExampleTest {
                 "http://google.de", "http://yahoo.de", "http://www.linkedin.com", "http://www.facebook.com",
                 "http:www.stanford.edu");
         
-        CompressionModel model = CompressionModel.buildOptimalModel(trainingDocs);
-        ByteBuffer data = ByteBuffer.wrap("check out http://www.facebook.com/someone".getBytes("UTF-8"));
-        ByteBuffer compressed = model.compress(data);
-        data.rewind();
-        
-        ByteBuffer decompressed = model.decompress(compressed);
+        CompressionModel model = CompressionModelBase.buildOptimalModel(trainingDocs);
+        ByteBuffer originalData = ByteBuffer.wrap("check out http://www.facebook.com/someone".getBytes("UTF-8"));
+        int orignalUncompressedLength = originalData.remaining();
 
-        Assert.assertTrue(data.equals(decompressed));
+        ByteBuffer compressedResult = ByteBuffer.allocate(originalData.remaining());
+        ByteBuffer decompressedResult = ByteBuffer.allocate(originalData.remaining());
+
+        int compressedLength = model.compress(originalData, compressedResult);
+        originalData.rewind();
+
+        int decompressedLength = model.decompress(compressedResult, decompressedResult);
+
+        Assert.assertEquals(orignalUncompressedLength, decompressedLength);
+
+        Assert.assertTrue(originalData.equals(decompressedResult));
     }
 }

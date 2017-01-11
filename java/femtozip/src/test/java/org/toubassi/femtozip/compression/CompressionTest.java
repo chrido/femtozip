@@ -16,9 +16,7 @@
 package org.toubassi.femtozip.compression;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import java.nio.ByteBuffer;
 
@@ -26,12 +24,11 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
 import org.toubassi.femtozip.CompressionModel;
-import org.toubassi.femtozip.models.GZipCompressionModel;
-import org.toubassi.femtozip.models.GZipDictionaryCompressionModel;
+import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
+import org.toubassi.femtozip.models.CompressionModelBase;
+import org.toubassi.femtozip.models.CompressionModels;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
-import org.toubassi.femtozip.models.PureHuffmanCompressionModel;
 import org.toubassi.femtozip.models.VariableIntCompressionModel;
-import org.toubassi.femtozip.models.VerboseStringCompressionModel;
 
 import static org.toubassi.femtozip.util.FileUtil.getString;
 
@@ -47,15 +44,19 @@ public class CompressionTest {
     public void testDictionaryOptimizer() throws IOException {
         
         CompressionModel compressionModel = new FemtoZipCompressionModel();
-        compressionModel.build(new ArrayDocumentList(PreambleString));
+        DictionaryOptimizer dictOpt = new DictionaryOptimizer(new ArrayDocumentList(PreambleString));
+        ByteBuffer dc = dictOpt.optimize(8 * 1024);
+        compressionModel.setDictionary(dc);
         
-        String dictionary = dictionaryToString(compressionModel.getDictionary());
+        String dictionary = dictionaryToString(dc);
         Assert.assertEquals(" our to , ince, sticure and , proity, s of e the for the establish the United States", dictionary);
 
         compressionModel = new FemtoZipCompressionModel();
-        compressionModel.build(new ArrayDocumentList(PanamaString));
+        dictOpt = new DictionaryOptimizer(new ArrayDocumentList(PanamaString));
+        dc = dictOpt.optimize((8*1024));
+        compressionModel.setDictionary(dc);
         
-        dictionary = dictionaryToString(compressionModel.getDictionary());
+        dictionary = dictionaryToString(dc);
         Assert.assertEquals("an a ", dictionary);
     }
 
@@ -65,22 +66,20 @@ public class CompressionTest {
 
     @Test
     public void testDocumentUniquenessScoring() throws IOException {
-        CompressionModel model = new FemtoZipCompressionModel();
         ArrayList<ByteBuffer> documents = new ArrayList<>();
         documents.add(ByteBuffer.wrap(new String("garrick1garrick2garrick3garrick4garrick").getBytes("UTF-8")));
         documents.add(ByteBuffer.wrap(new String("xtoubassigarrick").getBytes("UTF-8")));
         documents.add(ByteBuffer.wrap(new String("ytoubassi").getBytes("UTF-8")));
         documents.add(ByteBuffer.wrap(new String("ztoubassi").getBytes("UTF-8")));
-        
-        model.build(new ArrayDocumentList(documents));
-        
-        String dictionary = dictionaryToString(model.getDictionary());
+
+        ByteBuffer optimizedDictionary = DictionaryOptimizer.getOptimizedDictionary(new ArrayDocumentList(documents), 64 * 1024);
+
+        String dictionary = dictionaryToString(optimizedDictionary);
         Assert.assertEquals("garricktoubassi", dictionary);
     }
 
     @Test
     public void testNonexistantStrings() throws IOException {
-        CompressionModel model = new FemtoZipCompressionModel();
         ArrayList<ByteBuffer> documents = new ArrayList<>();
         documents.add(ByteBuffer.wrap(new String("http://espn.de").getBytes("UTF-8")));
         documents.add(ByteBuffer.wrap(new String("http://popsugar.de").getBytes("UTF-8")));
@@ -88,10 +87,9 @@ public class CompressionTest {
         documents.add(ByteBuffer.wrap(new String("http://yahoo.de").getBytes("UTF-8")));
         documents.add(ByteBuffer.wrap(new String("gtoubassi").getBytes("UTF-8")));
         documents.add(ByteBuffer.wrap(new String("gtoubassi").getBytes("UTF-8")));
-        
-        model.build(new ArrayDocumentList(documents));
-        
-        String dictionary = dictionaryToString(model.getDictionary());
+
+        ByteBuffer optimizedDictionary = DictionaryOptimizer.getOptimizedDictionary(new ArrayDocumentList(documents), 64 * 1024);
+        String dictionary = dictionaryToString(optimizedDictionary);
         // Make sure it doesn't think .dehttp:// is a good one
         Assert.assertEquals("gtoubassihttp://", dictionary);
     }
@@ -103,11 +101,11 @@ public class CompressionTest {
         VariableIntCompressionModel model = new VariableIntCompressionModel();
         model.build(new ArrayDocumentList(sourceBytes));
         
-        ByteBuffer compressedBytes = model.compress(sourceBytes);
+        ByteBuffer compressedBytes = model.compressDeprecated(sourceBytes);
 
         Assert.assertEquals(2, compressedBytes.remaining());
 
-        ByteBuffer decompressedBytes = model.decompress(compressedBytes);
+        ByteBuffer decompressedBytes = model.decompressDeprecated(compressedBytes);
         String decompressedString = getString(decompressedBytes);
         
         Assert.assertEquals(source, decompressedString);

@@ -15,9 +15,7 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
@@ -27,35 +25,21 @@ import java.nio.ByteBuffer;
 
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
+import org.toubassi.femtozip.util.StreamUtil;
 
-public class GZipDictionaryCompressionModel extends CompressionModel {
-    private byte[] gzipSizedDictionary;
+public class GZipDictionaryCompressionModel implements CompressionModel {
+    private byte[] dictionary;
     private static int GZIPMAXSIZE = (1 << 15) - 1;
 
-    public GZipDictionaryCompressionModel() {
-        super();
+    public GZipDictionaryCompressionModel(ByteBuffer dictionary) {
+        this.dictionary = new byte[dictionary.remaining()];
+        dictionary.get(this.dictionary);
     }
 
-    public void setDictionary(ByteBuffer dictionary) {
-        super.setDictionary(dictionary);
-        if (dictionary.remaining() > GZIPMAXSIZE) {
-            gzipSizedDictionary = new byte[GZIPMAXSIZE];
-            dictionary.position(dictionary.remaining() - GZIPMAXSIZE);
-            int i = 0;
-            while (dictionary.hasRemaining()) {
-                gzipSizedDictionary[i] = dictionary.get();
-            }
-        }
-        else {
-            gzipSizedDictionary = new byte[dictionary.remaining()];
-            int i = 0;
-            while (dictionary.hasRemaining()) {
-                gzipSizedDictionary[i] = dictionary.get();
-            }
-        }
-        dictionary.position(0);
+    public GZipDictionaryCompressionModel() {
+        dictionary = new byte[0];
     }
-    
+
     public void encodeLiteral(int aByte, Object context) {
         throw new UnsupportedOperationException();
     }
@@ -71,20 +55,20 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
     public void build(DocumentList documents) {
     }
 
-    public void compress(ByteBuffer data, OutputStream out) throws IOException {
-        compress(out, dictionary, data); 
+    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
+        compress(out, data);
     }
 
-    protected void compress(OutputStream out, ByteBuffer dictionary, ByteBuffer input) throws IOException {
+    protected void compress(OutputStream out, ByteBuffer input) throws IOException {
         Deflater compressor = new Deflater();
 
         try {
             compressor.setLevel(Deflater.BEST_COMPRESSION);
             if (dictionary != null) {
-                compressor.setDictionary(gzipSizedDictionary);
+                compressor.setDictionary(this.dictionary);
             }
 
-            // Give the compressor the data to compress
+            // Give the compressor the data to compressDeprecated
             byte[] inputB = new byte[input.remaining()];
             input.get(inputB); //TODO
 
@@ -103,7 +87,7 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
         }
     }
 
-    public ByteBuffer decompress(ByteBuffer compressedData) {
+    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
         try {
             byte[] asArray = new byte[compressedData.remaining()];
             compressedData.get(asArray);
@@ -115,7 +99,7 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
             while (!decompresser.finished()) {
                 int resultLength = decompresser.inflate(result);
                 if (resultLength == 0 && decompresser.needsDictionary()) {
-                    decompresser.setDictionary(gzipSizedDictionary);
+                    decompresser.setDictionary(dictionary);
                 }
                 if (resultLength > 0) {
                     bytesOut.write(result, 0, resultLength);
@@ -126,6 +110,77 @@ public class GZipDictionaryCompressionModel extends CompressionModel {
         }
         catch (DataFormatException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        return 0;
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
+        return 0;
+    }
+
+    @Override
+    public int setDictionary(ByteBuffer dictionary) {
+        int i = 0;
+        if (dictionary.remaining() > GZIPMAXSIZE) {
+            this.dictionary = new byte[GZIPMAXSIZE];
+            dictionary.position(dictionary.remaining() - GZIPMAXSIZE);
+            while (dictionary.hasRemaining()) {
+                this.dictionary[i] = dictionary.get();
+                i++;
+            }
+        }
+        else {
+            this.dictionary = new byte[dictionary.remaining()];
+            while (dictionary.hasRemaining()) {
+                this.dictionary[i] = dictionary.get();
+                i++;
+            }
+        }
+
+        return i;
+    }
+
+    @Override
+    public void load(DataInputStream in) throws IOException {
+        if(in.readInt() == 0) { // file format version, currently 0.
+
+            int dictionaryLength = in.readInt();
+            if (dictionaryLength == -1) {
+                setDictionary(null);
+            } else {
+                dictionary = new byte[dictionaryLength];
+                int totalRead = StreamUtil.readBytes(in, dictionary, dictionaryLength);
+                if (totalRead != dictionaryLength) {
+                    throw new IOException("Bad model in stream.  Could not read dictionary of length " + dictionaryLength);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void save(DataOutputStream out) throws IOException {
+        out.writeInt(0); // Poor mans file format version
+        if (dictionary == null) {
+            out.writeInt(-1);
+        }
+        else {
+            out.writeInt(dictionary.length);
+            out.write(dictionary);
         }
     }
 }

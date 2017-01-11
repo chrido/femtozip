@@ -3,6 +3,8 @@ package org.toubassi.femtozip;
 import java.nio.ByteBuffer;
 
 import org.junit.Test;
+import org.toubassi.femtozip.models.CompressionModelBase;
+import org.toubassi.femtozip.models.CompressionModels;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
 
 import java.io.*;
@@ -35,10 +37,8 @@ public class PerfTest {
         long sum = 0;
 
         for(int j = 1; j < 1; j ++) {
-            FemtoZipCompressionModel fzc = new FemtoZipCompressionModel();
-
             long begin = System.currentTimeMillis();
-            fzc.build(arrayDocumentList);
+            CompressionModel compressionModel = CompressionModelBase.buildModel(CompressionModels.FemtoZip, arrayDocumentList);
             long duration = System.currentTimeMillis() - begin;
 
             sum += duration;

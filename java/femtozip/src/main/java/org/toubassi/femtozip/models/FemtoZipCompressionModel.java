@@ -15,53 +15,128 @@
  */
 package org.toubassi.femtozip.models;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 
 import org.toubassi.femtozip.CompressionModel;
-import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.coding.huffman.*;
+import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
+import org.toubassi.femtozip.models.femtozip.FemtoZipHuffmanModel;
 import org.toubassi.femtozip.substring.SubstringPacker;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
 
-public class FemtoZipCompressionModel extends CompressionModel {
+public class FemtoZipCompressionModel implements CompressionModel, SubstringPacker.Consumer {
+    private SubstringPacker subStringPacker;
     private FemtoZipHuffmanModel codeModel;
+    private ByteBuffer dictionary;
 
-    public void load(DataInputStream in) throws IOException {
-        super.load(in);
-        codeModel = new FemtoZipHuffmanModel(in);
+    public FemtoZipCompressionModel(FemtoZipHuffmanModel codeModel, ByteBuffer dictionary) {
+        this.codeModel = codeModel;
+        this.dictionary = dictionary;
+        this.subStringPacker = new SubstringPacker(dictionary);
     }
 
+    public FemtoZipCompressionModel() {
+        codeModel = null;
+        dictionary = ByteBuffer.allocate(0);
+    }
+
+    @Override
+    public void load(DataInputStream in) throws IOException {
+        if(in.readInt() == 0){
+            dictionary = DictionaryOptimizer.readDictionary(in);
+            codeModel = new FemtoZipHuffmanModel(in);
+        }
+    }
+
+    @Override
     public void save(DataOutputStream out) throws IOException {
-        super.save(out);
+        out.writeInt(0); //Version
+
+        WritableByteChannel channel = Channels.newChannel(out);
+        channel.write(dictionary);
+        dictionary.rewind();
+
         codeModel.save(out);
     }
-    
-    public void build(DocumentList documents) throws IOException {
-        buildDictionaryIfUnspecified(documents);
-        codeModel = ((ModelBuilder)buildEncodingModel(documents)).createModel();
-    }
-    
-    protected SubstringPacker.Consumer createModelBuilder() {
-        return new ModelBuilder();
-    }
-    
-    public void compress(ByteBuffer data, OutputStream out) throws IOException {
-        HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputOutputStreamImpl(out));
-        getSubstringPacker().pack(data, this, huffmanEncoder);
 
-        out.close();
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+
+        BitOutput bitOutputByteBuffer = new BitOutputByteBufferImpl(compressedOut);
+        try {
+            return compress(decompressedIn, bitOutputByteBuffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+            //This should never happen since we only wrap ByteBuffers
+            throw new RuntimeException(e);
+        }
     }
 
-    public ByteBuffer compress(ByteBuffer buf) {
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException{
+        BitOutputOutputStreamImpl bitOutputOutputStream = new BitOutputOutputStreamImpl(compressedOut);
+
+        return compress(decompressedIn, bitOutputOutputStream);
+    }
+
+    private int compress(ByteBuffer decompressedIn, BitOutput compressedOut) throws IOException {
+        HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), compressedOut);
+        this.subStringPacker.pack(decompressedIn, this, huffmanEncoder);
+        compressedOut.flush();
+
+        return compressedOut.getWrittenBytes();
+    }
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+
+        try {
+            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedIn);
+            return decompress(bytesIn, decompressedOut);
+        } catch (IOException e) {
+            //with Bytebuffers this should never occure, this is why we throw a RuntimeException
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException{
+
+        HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), compressedIn);
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+
+        int nextSymbol;
+        while ((nextSymbol = decoder.decodeSymbol()) != -1) {
+            if (nextSymbol > 255) {
+                int length = nextSymbol - 256;
+                int offset = decoder.decodeSymbol() | (decoder.decodeSymbol() << 4) | (decoder.decodeSymbol() << 8) | (decoder.decodeSymbol() << 12);
+                offset = -offset;
+                unpacker.encodeSubstring(offset, length, null);
+            } else {
+                unpacker.encodeLiteral(nextSymbol, null);
+            }
+        }
+        unpacker.endEncoding(null);
+        return unpacker.writeOut(decompressedOut);
+    }
+
+    @Override
+    public int setDictionary(ByteBuffer dictionary) {
+        this.dictionary = dictionary;
+        this.subStringPacker = new SubstringPacker(dictionary);
+        return dictionary.remaining();
+    }
+
+    @Deprecated
+    public ByteBuffer compressDeprecated(ByteBuffer buf) {
         ByteBuffer compressed = ByteBuffer.allocate((int) (buf.remaining() * 2)); //Estimation is that the data is roughly half
 
         HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), new BitOutputByteBufferImpl(compressed));
-        getSubstringPacker().pack(buf, this, huffmanEncoder);
+        this.subStringPacker.pack(buf, this, huffmanEncoder);
 
         int numOfBytes = compressed.position();
         compressed.position(0);
@@ -70,6 +145,8 @@ public class FemtoZipCompressionModel extends CompressionModel {
         return compressed;
     }
 
+
+    @Override
     public void encodeLiteral(int aByte, Object context) {
         try {
             HuffmanEncoder encoder = (HuffmanEncoder)context;
@@ -80,6 +157,7 @@ public class FemtoZipCompressionModel extends CompressionModel {
         }
     }
 
+    @Override
     public void encodeSubstring(int offset, int length, Object context) {
         try {
             HuffmanEncoder encoder = (HuffmanEncoder)context;
@@ -100,7 +178,8 @@ public class FemtoZipCompressionModel extends CompressionModel {
             throw new RuntimeException(e);
         }
     }
-    
+
+    @Override
     public void endEncoding(Object context) {
         try {
             HuffmanEncoder encoder = (HuffmanEncoder)context;
@@ -110,7 +189,7 @@ public class FemtoZipCompressionModel extends CompressionModel {
         }
     }
     
-    public ByteBuffer decompress(ByteBuffer compressedBytes) {
+    public ByteBuffer decompressDeprecated(ByteBuffer compressedBytes) {
         try {
             ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedBytes);
             HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
@@ -132,50 +211,6 @@ public class FemtoZipCompressionModel extends CompressionModel {
             return unpacker.getUnpackedBytes();
         } catch (IOException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-
-
-    private class ModelBuilder implements SubstringPacker.Consumer {
-        private int[] literalLengthHistogram = new int[256 + 256 + 1]; // 256 for each unique literal byte, 256 for all possible length, plus 1 for EOF
-        private int[] offsetHistogramNibble0 = new int[16];
-        private int[] offsetHistogramNibble1 = new int[16];
-        private int[] offsetHistogramNibble2 = new int[16];
-        private int[] offsetHistogramNibble3 = new int[16];
-        
-        public void encodeLiteral(int aByte, Object context) {
-            literalLengthHistogram[aByte]++;
-        }
-        
-        public void endEncoding(Object context) {
-            literalLengthHistogram[literalLengthHistogram.length - 1]++;
-        }
-
-        public void encodeSubstring(int offset, int length, Object context) {
-            
-            if (length < 1 || length > 255) {
-                throw new IllegalArgumentException("Length " + length + " out of range [1,255]");
-            }
-            literalLengthHistogram[256 + length]++;
-            
-            offset = -offset;
-            if (length < 1 || offset > (2<<15)-1) {
-                throw new IllegalArgumentException("Length " + length + " out of range [1, 65535]");
-            }
-            offsetHistogramNibble0[offset & 0xf]++;
-            offsetHistogramNibble1[(offset >> 4) & 0xf]++;
-            offsetHistogramNibble2[(offset >> 8) & 0xf]++;
-            offsetHistogramNibble3[(offset >> 12) & 0xf]++;
-        }
-
-        public FemtoZipHuffmanModel createModel() {
-            return new FemtoZipHuffmanModel(
-                    new FrequencyHuffmanModel(literalLengthHistogram, false),
-                    new FrequencyHuffmanModel(offsetHistogramNibble0, false),
-                    new FrequencyHuffmanModel(offsetHistogramNibble1, false),
-                    new FrequencyHuffmanModel(offsetHistogramNibble2, false),
-                    new FrequencyHuffmanModel(offsetHistogramNibble3, false));
         }
     }
 }

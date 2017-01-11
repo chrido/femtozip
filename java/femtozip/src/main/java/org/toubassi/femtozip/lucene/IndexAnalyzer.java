@@ -15,7 +15,9 @@
  */
 package org.toubassi.femtozip.lucene;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +29,7 @@ import java.util.Map;
 
 import org.apache.lucene.index.IndexReader;
 import org.toubassi.femtozip.CompressionModel;
+import org.toubassi.femtozip.models.CompressionModelBase;
 import org.toubassi.femtozip.Tool;
 import org.toubassi.femtozip.util.FileUtil;
 
@@ -54,8 +57,8 @@ public class IndexAnalyzer extends Tool  {
         String[] fieldNames = new String[allFields.size()];
         allFields.toArray(fieldNames);
 
-        ArrayList<CompressionModel.ModelOptimizationResult> aggregateResults = new ArrayList<CompressionModel.ModelOptimizationResult>();
-        CompressionModel.ModelOptimizationResult bestResult = new CompressionModel.ModelOptimizationResult(null);
+        ArrayList<CompressionModelBase.ModelOptimizationResult> aggregateResults = new ArrayList<CompressionModelBase.ModelOptimizationResult>();
+        CompressionModelBase.ModelOptimizationResult bestResult = new CompressionModelBase.ModelOptimizationResult(null);
         long totalDataSize = 0;
 
         for (String fieldName : fieldNames) {
@@ -72,10 +75,10 @@ public class IndexAnalyzer extends Tool  {
 
             System.out.println("Processing field " + fieldName + " (containing " + documents.size() + " stored fields for " + numSamples + " documents)");
             
-            ArrayList<CompressionModel.ModelOptimizationResult> results = new ArrayList<CompressionModel.ModelOptimizationResult>();
+            ArrayList<CompressionModelBase.ModelOptimizationResult> results = new ArrayList<CompressionModelBase.ModelOptimizationResult>();
             CompressionModel model = buildModel(documents, results);
-            for (CompressionModel.ModelOptimizationResult result : results) {
-                CompressionModel.ModelOptimizationResult aggregateResult = null;
+            for (CompressionModelBase.ModelOptimizationResult result : results) {
+                CompressionModelBase.ModelOptimizationResult aggregateResult = null;
                 for (int i = 0, count = aggregateResults.size(); i < count; i++) {
                     if (aggregateResults.get(i).model.getClass() == result.model.getClass()) {
                         aggregateResult = aggregateResults.get(i);
@@ -83,7 +86,7 @@ public class IndexAnalyzer extends Tool  {
                     }
                 }
                 if (aggregateResult == null) {
-                    aggregateResult = new CompressionModel.ModelOptimizationResult(result.model);
+                    aggregateResult = new CompressionModelBase.ModelOptimizationResult(result.model);
                     aggregateResults.add(aggregateResult);
                 }
                 aggregateResult.accumulate(result);
@@ -105,7 +108,7 @@ public class IndexAnalyzer extends Tool  {
         System.out.println("Aggregate performance:");
         System.out.println("Best per Field " + bestResult);
         Collections.sort(aggregateResults);
-        for (CompressionModel.ModelOptimizationResult result : aggregateResults) {
+        for (CompressionModelBase.ModelOptimizationResult result : aggregateResults) {
             System.out.println(result);
         }
     }
@@ -155,7 +158,7 @@ public class IndexAnalyzer extends Tool  {
         for (File file : dirContents) {
             if (file.getName().endsWith(".fzmodel")) {
                 String fieldName = file.getName().replace(".fzmodel", "");
-                CompressionModel model = CompressionModel.loadModel(file.getPath());
+                CompressionModel model = CompressionModelBase.loadModel(file.getPath());
                 fieldToModel.put(fieldName, model);
             }
         }        
@@ -177,7 +180,11 @@ public class IndexAnalyzer extends Tool  {
         
         for (Map.Entry<String, CompressionModel> entry : fieldToModel.entrySet()) {
             String path = modelDir.getPath() + File.separator + entry.getKey()+ ".fzmodel";
-            entry.getValue().save(path);
+            try(FileOutputStream fileOutputStream = new FileOutputStream(path);
+                DataOutputStream dataOutputStream = new DataOutputStream(fileOutputStream))
+            {
+                entry.getValue().save(dataOutputStream);
+            }
         }
     }
 

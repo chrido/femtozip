@@ -36,6 +36,7 @@ import java.nio.ByteBuffer;
  * {@link java.io.ByteArrayOutputStream}, just that this uses a {@code ByteBuffer} instead of a
  * {@code byte[]} as internal storage.
  */
+@Deprecated
 public class ByteBufferOutputStream extends OutputStream {
 
     private ByteBuffer wrappedBuffer;

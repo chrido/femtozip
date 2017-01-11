@@ -15,9 +15,11 @@
  */
 package org.toubassi.femtozip.dictionary;
 
+import java.io.DataInputStream;
 import java.nio.ByteBuffer;
 
 import org.toubassi.femtozip.DocumentList;
+import org.toubassi.femtozip.util.StreamUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,15 +48,32 @@ public class DictionaryOptimizer {
             while(document.hasRemaining()){
                 bytesOut.write(document.get());
             }
-            //byte[] arr = new byte[document.remaining()];
-            //document.put(arr);
-            //document.flip();
-
             starts[i] = bytesOut.size();
-            //bytesOut.write(arr);
         }
 
         bytes = bytesOut.toByteArray();
+    }
+
+    public static ByteBuffer getOptimizedDictionary(DocumentList documents, int desiredLength) throws IOException {
+        DictionaryOptimizer dicOpt = new DictionaryOptimizer(documents);
+        return dicOpt.optimize(desiredLength);
+    }
+
+    public static ByteBuffer readDictionary(DataInputStream in) throws IOException {
+        int dictionaryLength = in.readInt();
+
+        if (dictionaryLength == -1) {
+            return ByteBuffer.allocate(0);
+        }
+        else {
+            byte[] dictionary = new byte[dictionaryLength];
+            int totalRead = StreamUtil.readBytes(in, dictionary, dictionaryLength);
+            if (totalRead != dictionaryLength) {
+                throw new IOException("Bad model in stream.  Could not read dictionary of length " + dictionaryLength);
+            }
+
+            return ByteBuffer.wrap(dictionary);
+        }
     }
 
     public ByteBuffer optimize(int desiredLength) {

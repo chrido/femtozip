@@ -85,7 +85,7 @@ public class FileUtil {
         if(buffer.hasArray()) {
             bytes = buffer.array();
         } else {
-            bytes = new byte[buffer.remaining()];
+            bytes = new byte[buffer.limit()];
             buffer.get(bytes);
         }
         return new String(bytes, Charset.forName("UTF-8"));
