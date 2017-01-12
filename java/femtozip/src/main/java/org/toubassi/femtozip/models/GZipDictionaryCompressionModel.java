@@ -133,7 +133,7 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
         return 0;
     }
 
-    @Override
+    /*@Override
     public int setDictionary(ByteBuffer dictionary) {
         int i = 0;
         if (dictionary.remaining() > GZIPMAXSIZE) {
@@ -153,7 +153,7 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
         }
 
         return i;
-    }
+    }*/
 
     @Override
     public void load(DataInputStream in) throws IOException {
@@ -161,7 +161,7 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
 
             int dictionaryLength = in.readInt();
             if (dictionaryLength == -1) {
-                setDictionary(null);
+                this.dictionary = null;
             } else {
                 dictionary = new byte[dictionaryLength];
                 int totalRead = StreamUtil.readBytes(in, dictionary, dictionaryLength);

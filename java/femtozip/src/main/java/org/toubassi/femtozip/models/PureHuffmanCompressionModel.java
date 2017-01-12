@@ -52,11 +52,6 @@ public class PureHuffmanCompressionModel implements CompressionModel {
         return 0;
     }
 
-    @Override
-    public int setDictionary(ByteBuffer dictionary) {
-        return 0;
-    }
-
     public void load(DataInputStream in) throws IOException {
         codeModel = new FrequencyHuffmanModel(in);
     }

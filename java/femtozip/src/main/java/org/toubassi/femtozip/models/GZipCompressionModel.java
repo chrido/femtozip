@@ -49,12 +49,6 @@ public class GZipCompressionModel implements CompressionModel {
     }
 
     @Override
-    public int setDictionary(ByteBuffer dictionary) {
-        //No dictionary to save
-        return 0;
-    }
-
-    @Override
     public void load(DataInputStream in) throws IOException {
         // Nothing to load
     }

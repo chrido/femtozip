@@ -36,9 +36,9 @@ import static org.toubassi.femtozip.util.FileUtil.getString;
 @RunWith(Parameterized.class)
 public class MultiThreadCompressionTest {
 
-    private final CompressionModels model;
+    private final CompressionModelVariant model;
 
-    public MultiThreadCompressionTest(CompressionModels model) {
+    public MultiThreadCompressionTest(CompressionModelVariant model) {
         this.model = model;
     }
 
@@ -49,7 +49,7 @@ public class MultiThreadCompressionTest {
                 { new FemtoZipCompressionModel() },
                 { new GZipDictionaryCompressionModel() },
                 { new GZipCompressionModel() },*/
-                { CompressionModels.PureHuffmann },
+                { CompressionModelVariant.PureHuffmann },
                 /*{ new VariableIntCompressionModel() }*/
         });
     }
@@ -106,7 +106,7 @@ public class MultiThreadCompressionTest {
         }
     }
     
-    void testThreadedCompressionModel(CompressionModels modelType) throws IOException, InterruptedException {
+    void testThreadedCompressionModel(CompressionModelVariant modelType) throws IOException, InterruptedException {
         System.out.println(model.getClass().getName());
 
         Random random = new Random();
@@ -116,7 +116,7 @@ public class MultiThreadCompressionTest {
         }
         ByteBuffer dictionary = ByteBuffer.wrap(dict.toString().getBytes());
 
-        CompressionModel model = CompressionModelBase.buildModel(new ArrayDocumentList(dictionary), dictionary, modelType);
+        CompressionModel model = CompressionModelBase.buildModel(modelType, new ArrayDocumentList(dictionary), dictionary);
 
         ArrayList<CompressionThread> threads = new ArrayList<CompressionThread>();
         threads.add(new CompressionThread(500, model, dictionary));

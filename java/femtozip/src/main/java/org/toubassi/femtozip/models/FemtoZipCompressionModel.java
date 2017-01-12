@@ -39,6 +39,10 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
         this.subStringPacker = new SubstringPacker(dictionary);
     }
 
+    public FemtoZipCompressionModel(ByteBuffer dictionary) {
+        this(null, dictionary);
+    }
+
     public FemtoZipCompressionModel() {
         codeModel = null;
         dictionary = ByteBuffer.allocate(0);
@@ -122,13 +126,6 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
         }
         unpacker.endEncoding(null);
         return unpacker.writeOut(decompressedOut);
-    }
-
-    @Override
-    public int setDictionary(ByteBuffer dictionary) {
-        this.dictionary = dictionary;
-        this.subStringPacker = new SubstringPacker(dictionary);
-        return dictionary.remaining();
     }
 
     @Deprecated

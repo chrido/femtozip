@@ -109,11 +109,6 @@ public class VerboseStringCompressionModel implements CompressionModel {
     }
 
     @Override
-    public int setDictionary(ByteBuffer dictionary) {
-        return 0;
-    }
-
-    @Override
     public void load(DataInputStream in) throws IOException {
 
     }

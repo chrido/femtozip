@@ -22,7 +22,11 @@ public class BitOutputByteBufferImpl implements BitOutput {
         }
         count++;
         if (count == 8) {
-            out.put((byte)buffer);
+            try {
+                out.put((byte) buffer);
+            }catch (java.nio.BufferOverflowException ex) {
+                ex.printStackTrace();
+            }
             writtenBytes++;
             buffer = 0;
             count = 0;

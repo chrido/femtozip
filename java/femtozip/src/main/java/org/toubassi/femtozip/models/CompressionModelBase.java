@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.SamplingDocumentList;
-import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.femtozip.FemtoZipCompressionModelBuilder;
 import org.toubassi.femtozip.substring.SubstringPacker;
@@ -96,11 +95,19 @@ public class CompressionModelBase {
      * @throws IOException
      */
     public static CompressionModel buildOptimalModel(DocumentList documents) throws IOException {
-        return buildOptimalModel(documents, null, null, false);
+        return buildOptimalModel(documents,  new ArrayList<ModelOptimizationResult>(), null, false);
     }
 
-    public static CompressionModel buildModel(DocumentList documents, ByteBuffer dictionary, CompressionModels model) throws IOException {
-        switch (model) {
+    public static CompressionModel buildModel(CompressionModelVariant model, DocumentList documents) throws IOException {
+        return buildModel(model, documents, 64*1024);
+    }
+
+    public static CompressionModel buildModel(CompressionModelVariant model, DocumentList documents, int maxDictionaryLength) throws IOException {
+        return buildModel(model, documents, DictionaryOptimizer.getOptimizedDictionary(documents, maxDictionaryLength));
+    }
+
+    public static CompressionModel buildModel(CompressionModelVariant variant, DocumentList documents, ByteBuffer dictionary) throws IOException {
+        switch (variant) {
             case VerboseString:
                 return new VerboseStringCompressionModel(dictionary);
             case VariableInt:
@@ -116,7 +123,7 @@ public class CompressionModelBase {
             case Native:
                 return new NativeCompressionModel();
         }
-        throw new RuntimeException("Unable to match CompressionModels");
+        throw new RuntimeException("Unable to match CompressionModelVariant");
     }
 
     public static CompressionModel instantiateCompressionModel(String modelName) {
@@ -141,15 +148,11 @@ public class CompressionModelBase {
         return model;
     }
 
-    public static CompressionModel buildModel(CompressionModels model, DocumentList documents) throws IOException {
-        return buildModel(documents, DictionaryOptimizer.getOptimizedDictionary(documents, 64*1024), model);
-    }
-    
-    public static CompressionModel buildOptimalModel(DocumentList documents, List<ModelOptimizationResult> results, CompressionModels[] competingModels, boolean verify) throws IOException {
+    public static CompressionModel buildOptimalModel(DocumentList documents, List<CompressionModelBase.ModelOptimizationResult> results, CompressionModelVariant[] competingModels, boolean verify) throws IOException {
 
-        CompressionModels[] models;
+        CompressionModelVariant[] models;
         if(competingModels == null || competingModels.length == 0)
-            models = CompressionModels.values();
+            models = CompressionModelVariant.values();
         else
             models = competingModels.clone();
 
@@ -162,17 +165,19 @@ public class CompressionModelBase {
         // Build the dictionary once to avoid rebuilding for each model.
         ByteBuffer dictionary = DictionaryOptimizer.getOptimizedDictionary(trainingDocuments, 64 * 1024);
 
-        for(CompressionModels model: models) {
-            CompressionModel compressionModel = buildModel(trainingDocuments, dictionary, model);
+        for(CompressionModelVariant model: models) {
+            CompressionModel compressionModel = buildModel(model, trainingDocuments, dictionary);
             results.add(new ModelOptimizationResult(compressionModel));
         }
 
         // Pick the best model
         for (int i = 0, count = testingDocuments.size(); i < count; i++) {
             ByteBuffer data = testingDocuments.getBB(i);
-            
+
             for (ModelOptimizationResult result : results) {
-                ByteBuffer compressed = ByteBuffer.allocate(data.remaining());
+                data.rewind();
+
+                ByteBuffer compressed = ByteBuffer.allocate(data.remaining() * 2);
                 result.model.compress(data, compressed);
 
                 if (verify) {

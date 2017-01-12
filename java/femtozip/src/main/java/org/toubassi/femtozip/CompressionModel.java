@@ -41,17 +41,6 @@ public interface CompressionModel {
      */
     int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException;
 
-
-    /**
-     * Dictionary is read from current position until limit
-     * Some Compression Models, e.g. GZip impose a maximum dictionary size. In that case it will be truncated from the beginning.
-     * The assumption is that entries in the back of the dictionary are more valuable
-     * @param dictionary
-     * @return amount of bytes taken from the dictionary
-     */
-    int setDictionary(ByteBuffer dictionary);
-
-
     void load(DataInputStream in) throws IOException;
 
     void save(DataOutputStream out) throws IOException;

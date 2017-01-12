@@ -21,7 +21,7 @@ public class RegressionTests {
     public static String PreambleDictionary = " of and for the a United States ";
     private final String source;
     private final ByteBuffer dictionary;
-    private final CompressionModels model;
+    private final CompressionModelVariant model;
     private final int expectedSize;
 
     @Parameterized.Parameters()
@@ -29,17 +29,17 @@ public class RegressionTests {
         String[][] testPairs = {{PreambleString, PreambleDictionary}, {"",""}};
         ArrayList<Object[]> allCombinations = new ArrayList<>();
         for (String[] testPair : testPairs) {
-            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModels.VerboseString, testPair[0].length() == 0 ? -1 : 363});
-            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModels.FemtoZip, testPair[0].length() == 0 ? -1 : 205});
-            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModels.GZipDictionary, testPair[0].length() == 0 ? -1 : 204});
-            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModels.GZip, testPair[0].length() == 0 ? -1 : 210});
-            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModels.PureHuffmann, testPair[0].length() == 0 ? -1 : 211});
-            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModels.VariableInt, testPair[0].length() == 0 ? -1 : 333});
+            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModelVariant.VerboseString, testPair[0].length() == 0 ? -1 : 363});
+            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModelVariant.FemtoZip, testPair[0].length() == 0 ? -1 : 205});
+            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModelVariant.GZipDictionary, testPair[0].length() == 0 ? -1 : 204});
+            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModelVariant.GZip, testPair[0].length() == 0 ? -1 : 210});
+            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModelVariant.PureHuffmann, testPair[0].length() == 0 ? -1 : 211});
+            allCombinations.add(new Object[]{testPair[0], testPair[1], CompressionModelVariant.VariableInt, testPair[0].length() == 0 ? -1 : 333});
         }
         return allCombinations;
     }
 
-    public RegressionTests(String source, String dictionary, CompressionModels model, int expectedSize) {
+    public RegressionTests(String source, String dictionary, CompressionModelVariant model, int expectedSize) {
         this.source = source;
         this.dictionary = ByteBuffer.wrap(dictionary.getBytes());
         this.model = model;
@@ -50,7 +50,7 @@ public class RegressionTests {
     public void testModel() throws IOException {
         ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
 
-        CompressionModel compressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionary, this.model);
+        CompressionModel compressionModel = CompressionModelBase.buildModel(this.model, new ArrayDocumentList(sourceBytes), dictionary);
 
         testBuiltModel(compressionModel, sourceBytes, expectedSize);
     }

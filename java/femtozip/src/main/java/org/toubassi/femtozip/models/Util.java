@@ -2,11 +2,6 @@ package org.toubassi.femtozip.models;
 
 import org.toubassi.femtozip.CompressionModel;
 
-import javax.print.attribute.standard.Compression;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOError;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -19,7 +14,7 @@ public class Util {
      * @param model
      * @return
      */
-    public static CompressionModel fromEnum(CompressionModels model) {
+    public static CompressionModel fromEnum(CompressionModelVariant model) {
         switch (model) {
             case GZip:
                 return new GZipCompressionModel();

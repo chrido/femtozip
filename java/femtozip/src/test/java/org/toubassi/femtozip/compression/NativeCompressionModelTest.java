@@ -25,8 +25,7 @@ import org.junit.Test;
 import org.toubassi.femtozip.ArrayDocumentList;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.models.CompressionModelBase;
-import org.toubassi.femtozip.models.CompressionModels;
-import org.toubassi.femtozip.models.FemtoZipCompressionModel;
+import org.toubassi.femtozip.models.CompressionModelVariant;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 
 
@@ -42,9 +41,9 @@ public class NativeCompressionModelTest {
         ByteBuffer sourceBytes = ByteBuffer.wrap(CompressionTest.PreambleString.getBytes());
         ByteBuffer dictionaryBytes = ByteBuffer.wrap(CompressionTest.PreambleDictionary.getBytes());
 
-        CompressionModel nativeCompressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionaryBytes, CompressionModels.Native);
+        CompressionModel nativeCompressionModel = CompressionModelBase.buildModel(CompressionModelVariant.Native, new ArrayDocumentList(sourceBytes), dictionaryBytes);
 
-        //CompressionModel femtoZipCompressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionaryBytes, CompressionModels.FemtoZip);
+        //CompressionModel femtoZipCompressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionaryBytes, CompressionModelVariant.FemtoZip);
 
         RegressionTests.testBuiltModel(nativeCompressionModel, sourceBytes, 187);
 

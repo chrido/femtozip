@@ -26,7 +26,6 @@ import org.toubassi.femtozip.ArrayDocumentList;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.CompressionModelBase;
-import org.toubassi.femtozip.models.CompressionModels;
 import org.toubassi.femtozip.models.FemtoZipCompressionModel;
 import org.toubassi.femtozip.models.VariableIntCompressionModel;
 
@@ -39,25 +38,23 @@ public class CompressionTest {
 
     public static String PanamaString = "a man a plan a canal panama";
     
-    
-    @Test
-    public void testDictionaryOptimizer() throws IOException {
-        
-        CompressionModel compressionModel = new FemtoZipCompressionModel();
-        DictionaryOptimizer dictOpt = new DictionaryOptimizer(new ArrayDocumentList(PreambleString));
-        ByteBuffer dc = dictOpt.optimize(8 * 1024);
-        compressionModel.setDictionary(dc);
-        
-        String dictionary = dictionaryToString(dc);
-        Assert.assertEquals(" our to , ince, sticure and , proity, s of e the for the establish the United States", dictionary);
 
-        compressionModel = new FemtoZipCompressionModel();
-        dictOpt = new DictionaryOptimizer(new ArrayDocumentList(PanamaString));
-        dc = dictOpt.optimize((8*1024));
-        compressionModel.setDictionary(dc);
-        
-        dictionary = dictionaryToString(dc);
-        Assert.assertEquals("an a ", dictionary);
+    private static void testDictionary(String document, String expectedDictionary) throws IOException {
+        DictionaryOptimizer dictOpt = new DictionaryOptimizer(new ArrayDocumentList(document));
+        ByteBuffer dc = dictOpt.optimize(8 * 1024);
+
+        String actualDictionary= dictionaryToString(dc);
+        Assert.assertEquals(expectedDictionary, actualDictionary);
+    }
+
+    @Test
+    public void testDictionaryPanama() throws IOException {
+        testDictionary(PanamaString, "an a ");
+    }
+
+    @Test
+    public void testDictionaryPreamble() throws IOException {
+        testDictionary(PreambleString, " our to , ince, sticure and , proity, s of e the for the establish the United States");
     }
 
     private static String dictionaryToString(ByteBuffer dictionary) {

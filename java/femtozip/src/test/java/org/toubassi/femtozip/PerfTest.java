@@ -4,8 +4,7 @@ import java.nio.ByteBuffer;
 
 import org.junit.Test;
 import org.toubassi.femtozip.models.CompressionModelBase;
-import org.toubassi.femtozip.models.CompressionModels;
-import org.toubassi.femtozip.models.FemtoZipCompressionModel;
+import org.toubassi.femtozip.models.CompressionModelVariant;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -38,7 +37,7 @@ public class PerfTest {
 
         for(int j = 1; j < 1; j ++) {
             long begin = System.currentTimeMillis();
-            CompressionModel compressionModel = CompressionModelBase.buildModel(CompressionModels.FemtoZip, arrayDocumentList);
+            CompressionModel compressionModel = CompressionModelBase.buildModel(CompressionModelVariant.FemtoZip, arrayDocumentList);
             long duration = System.currentTimeMillis() - begin;
 
             sum += duration;
