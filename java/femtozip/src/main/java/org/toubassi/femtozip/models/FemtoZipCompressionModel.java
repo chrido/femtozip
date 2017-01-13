@@ -72,7 +72,11 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
 
         BitOutput bitOutputByteBuffer = new BitOutputByteBufferImpl(compressedOut);
         try {
-            return compress(decompressedIn, bitOutputByteBuffer);
+            int written = compress(decompressedIn, bitOutputByteBuffer);
+            compressedOut.limit(written);
+            compressedOut.rewind();
+            return written;
+
         } catch (IOException e) {
             e.printStackTrace();
             //This should never happen since we only wrap ByteBuffers
@@ -83,7 +87,6 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
     @Override
     public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException{
         BitOutputOutputStreamImpl bitOutputOutputStream = new BitOutputOutputStreamImpl(compressedOut);
-
         return compress(decompressedIn, bitOutputOutputStream);
     }
 
@@ -100,7 +103,12 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
 
         try {
             ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedIn);
-            return decompress(bytesIn, decompressedOut);
+            int written = decompress(bytesIn, decompressedOut);
+
+            decompressedOut.rewind();
+            decompressedOut.limit(written);
+
+            return written;
         } catch (IOException e) {
             //with Bytebuffers this should never occure, this is why we throw a RuntimeException
             throw new RuntimeException(e);

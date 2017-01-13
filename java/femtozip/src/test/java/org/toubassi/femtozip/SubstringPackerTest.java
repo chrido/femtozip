@@ -100,7 +100,7 @@ public class SubstringPackerTest {
                 model = new VerboseStringCompressionModel();
             }
 
-            System.out.println(getString(bytes));
+            //System.out.println(getString(bytes));
 
             ByteBuffer compressed = model.compressDeprecated(bytes);
             ByteBuffer decompressed = model.decompressDeprecated(compressed);

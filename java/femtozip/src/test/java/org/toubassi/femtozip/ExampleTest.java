@@ -21,22 +21,19 @@ public class ExampleTest {
                 "http:www.stanford.edu");
         
         //CompressionModel model = CompressionModelBase.buildOptimalModel(trainingDocs);
-        CompressionModel model = CompressionModelBase.buildModel(CompressionModelVariant.FemtoZip, trainingDocs);
+        CompressionModel model = CompressionModelBase.buildOptimalModel(trainingDocs);
         ByteBuffer originalData = ByteBuffer.wrap("check out http://www.facebook.com/someone".getBytes("UTF-8"));
         int orignalUncompressedLength = originalData.remaining();
 
         ByteBuffer compressedResult = ByteBuffer.allocate(originalData.remaining());
-        ByteBuffer decompressedResult = ByteBuffer.allocate((int) (originalData.remaining() * 2));
 
-        int compressedLength = model.compress(originalData, compressedResult);
+        model.compress(originalData, compressedResult);
         originalData.rewind();
-        compressedResult.rewind();
 
+        ByteBuffer decompressedResult = ByteBuffer.allocate(originalData.remaining());
         int decompressedLength = model.decompress(compressedResult, decompressedResult);
 
         Assert.assertEquals(orignalUncompressedLength, decompressedLength);
-        decompressedResult.rewind();
-
         Assert.assertTrue(originalData.equals(decompressedResult));
     }
 }

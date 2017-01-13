@@ -166,7 +166,7 @@ public class CompressionModelBase {
         ByteBuffer dictionary = DictionaryOptimizer.getOptimizedDictionary(trainingDocuments, 64 * 1024);
 
         for(CompressionModelVariant model: models) {
-            CompressionModel compressionModel = buildModel(model, trainingDocuments, dictionary);
+            CompressionModel compressionModel = buildModel(model, trainingDocuments, dictionary.slice());
             results.add(new ModelOptimizationResult(compressionModel));
         }
 
