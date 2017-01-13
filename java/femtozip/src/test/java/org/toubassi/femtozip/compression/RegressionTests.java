@@ -11,6 +11,7 @@ import org.toubassi.femtozip.ArrayDocumentList;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.models.CompressionModelBase;
 import org.toubassi.femtozip.models.*;
+import org.toubassi.femtozip.util.FileUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,8 +57,12 @@ public class RegressionTests {
     }
 
     public static void testBuiltModel(CompressionModel model, ByteBuffer sourceBytes, int expectedSize) throws IOException {
-        ByteBuffer compressedBytes =ByteBuffer.allocate(sourceBytes.remaining());
+        System.out.println(model.getClass().getName());
+
+        ByteBuffer compressedBytes = ByteBuffer.allocate(sourceBytes.remaining() * 2); //just to be on the safe side
         int writtenSize = model.compress(sourceBytes, compressedBytes);
+        System.out.println("Compressed:");
+        System.out.println(FileUtil.getString(compressedBytes));
 
         if (expectedSize >= 0) {
             Assert.assertEquals(expectedSize, writtenSize);
@@ -67,7 +72,13 @@ public class RegressionTests {
         ByteBuffer decompressedBytes = ByteBuffer.allocate(sourceBytes.remaining());
         model.decompress(compressedBytes, decompressedBytes);
 
-        sourceBytes.reset();
-        Assert.assertTrue(sourceBytes.equals(decompressedBytes));
+        sourceBytes.rewind();
+        ByteBuffer slice = decompressedBytes.slice();
+        System.out.println("Source:");
+        System.out.println(FileUtil.getString(sourceBytes));
+        System.out.println("Decompressed");
+        System.out.println(FileUtil.getString(slice));
+
+        Assert.assertTrue(sourceBytes.equals(slice));
     }
 }

@@ -35,17 +35,74 @@ public class VariableIntCompressionModel implements CompressionModel {
 
     @Override
     public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
-        return 0;
+        try(ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressedOut)){
+            int length = compress(decompressedIn, bbos);
+            compressedOut.limit(length);
+            compressedOut.rewind();
+            return length;
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("IOException", e);
+        }
     }
 
     @Override
     public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
-        return 0;
+        if (decompressedIn.remaining() == 0) {
+            return 0;
+        }
+        // If its too big to hold an int, or it has a leading 0, we can't do it (leading zeros will get lost in the encoding).
+        if (decompressedIn.remaining() > 10 || decompressedIn.get(0) == '0') {
+            return compressAsNonInt(decompressedIn, compressedOut);
+        }
+
+        for (int i = 0, count = decompressedIn.remaining(); i < count; i++) {
+            if (decompressedIn.get(i) < '0' || decompressedIn.get(i) > '9') {
+                return compressAsNonInt(decompressedIn, compressedOut);
+            }
+        }
+
+        long l = Long.parseLong(getString(decompressedIn));
+        int i = (int)l;
+        if (i != l) {
+            return compressAsNonInt(decompressedIn, compressedOut);
+        }else {
+            int size = 0;
+            while ((i & ~0x7F) != 0) {
+                compressedOut.write((byte)((i & 0x7f) | 0x80));
+                size ++;
+                i >>>= 7;
+            }
+            compressedOut.write((byte) i);
+            size++;
+
+            return size;
+        }
     }
 
     @Override
     public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
-        return 0;
+
+        if (compressedIn.remaining() == 0) {
+            return 0;
+        }
+        if (compressedIn.remaining() > 5) {
+            return decompressAsNonInt(compressedIn, decompressedOut);
+        }
+
+        byte b = compressedIn.get();
+        int i = b & 0x7F;
+        for (int shift = 7; (b & 0x80) != 0; shift += 7) {
+            b = compressedIn.get();
+            i |= (b & 0x7F) << shift;
+        }
+
+        byte[] bytes = Integer.toString(i).getBytes(Charset.forName("UTF-8"));
+        decompressedOut.put(bytes);
+        decompressedOut.limit(bytes.length);
+        decompressedOut.rewind();
+
+        return bytes.length;
     }
 
     @Override
@@ -63,82 +120,29 @@ public class VariableIntCompressionModel implements CompressionModel {
     }
     
 
-    public ByteBuffer compressDeprecated(ByteBuffer data) {
-        ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() *0.8)); //Estimate
-        ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
-        try {
-            compressDeprecated(data, bbos);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("IOException", e);
-        }
 
-        return bbos.toByteBuffer();
-    }
-
-    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
-        if (data.remaining() == 0) {
-            return;
-        }
-        // If its too big to hold an int, or it has a leading 0, we can't do it (leading zeros will get lost in the encoding).
-        if (data.remaining() > 10 || data.get(0) == '0') {
-            compressAsNonInt(data, out);
-            return;
-        }
-        
-        for (int i = 0, count = data.remaining(); i < count; i++) {
-            if (data.get(i) < '0' || data.get(i) > '9') {
-                compressAsNonInt(data, out);
-                return;
-            }
-        }
-        
-        long l = Long.parseLong(getString(data));
-        int i = (int)l;
-        if (i != l) {
-            compressAsNonInt(data, out);
-            return;
-        }
-        while ((i & ~0x7F) != 0) {
-            out.write((byte)((i & 0x7f) | 0x80));
-            i >>>= 7;
-       }
-        out.write(i);
-    }
-    
     private static byte[] padding = new byte[6];
     
-    private void compressAsNonInt(ByteBuffer data, OutputStream out) throws IOException {
+    private int compressAsNonInt(ByteBuffer data, OutputStream out) throws IOException {
+        int size = 0;
         out.write(padding);
-        while (data.hasRemaining()){
+        size += padding.length;
+        while (data.hasRemaining()){ //TODO: remove loop
             out.write(data.get());
+            size++;
         }
+        return size;
     }
     
-    private ByteBuffer decompressAsNonInt(ByteBuffer compressedData) {
+    private int decompressAsNonInt(ByteBuffer compressedData, ByteBuffer compressed) {
         //ByteBuffer slice = compressedData.slice();
         byte[] toreturn = new byte[compressedData.remaining() - 6];
         compressedData.position(6);
         compressedData.get(toreturn);
-        return ByteBuffer.wrap(toreturn);
-    }
-    
-    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
-        if (compressedData.remaining() == 0) {
-            return compressedData;
-        }
-        if (compressedData.remaining() > 5) {
-            return decompressAsNonInt(compressedData);
-        }
-        
-        byte b = compressedData.get();
-        int i = b & 0x7F;
-        for (int shift = 7; (b & 0x80) != 0; shift += 7) {
-          b = compressedData.get();
-          i |= (b & 0x7F) << shift;
-        }
 
-        byte[] bytes = Integer.toString(i).getBytes(Charset.forName("UTF-8"));
-        return ByteBuffer.wrap(bytes);
+        compressed.put(toreturn);
+        compressed.limit(toreturn.length);
+        compressed.rewind();
+        return toreturn.length;
     }
 }

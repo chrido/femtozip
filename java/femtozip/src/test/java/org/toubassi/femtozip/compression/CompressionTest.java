@@ -95,16 +95,20 @@ public class CompressionTest {
     public void testVariableIntCompressionModel() throws IOException {
         String source = "12345";
         ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes("UTF-8"));
+        ByteBuffer compressed = ByteBuffer.allocate(sourceBytes.remaining());
+        ByteBuffer decompressed = ByteBuffer.allocate(sourceBytes.remaining());
+
         VariableIntCompressionModel model = new VariableIntCompressionModel();
         model.build(new ArrayDocumentList(sourceBytes));
-        
-        ByteBuffer compressedBytes = model.compressDeprecated(sourceBytes);
 
-        Assert.assertEquals(2, compressedBytes.remaining());
+        int length = model.compress(sourceBytes, compressed);
 
-        ByteBuffer decompressedBytes = model.decompressDeprecated(compressedBytes);
-        String decompressedString = getString(decompressedBytes);
-        
+        Assert.assertEquals(2, compressed.remaining());
+        Assert.assertEquals(2, length);
+
+        model.decompress(compressed, decompressed);
+
+        String decompressedString = getString(decompressed);
         Assert.assertEquals(source, decompressedString);
     }
 }

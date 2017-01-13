@@ -22,7 +22,10 @@ import java.nio.ByteBuffer;
 
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
+import org.toubassi.femtozip.coding.huffman.BitOutput;
+import org.toubassi.femtozip.coding.huffman.BitOutputByteBufferImpl;
 import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
+import org.toubassi.femtozip.coding.huffman.CountingOutputStream;
 import org.toubassi.femtozip.substring.SubstringPacker;
 import org.toubassi.femtozip.substring.SubstringUnpacker;
 
@@ -46,28 +49,37 @@ public class VerboseStringCompressionModel implements CompressionModel {
         substringPackerConsumer = new SubstringPackerConsumer();
     }
 
-    public ByteBuffer compressDeprecated(ByteBuffer data) {
-        ByteBuffer compressed = ByteBuffer.allocate((int) (data.remaining() * 0.5));
-        ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressed, true);
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
         try {
-            compressDeprecated(data, bbos);
+            try (ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressedOut)) {
+                compress(decompressedIn, bbos);
+                int writtenBytes = bbos.getWrittenBytes();
+                compressedOut.limit(writtenBytes);
+                compressedOut.rewind();
+                return writtenBytes;
+            }
         } catch (IOException e) {
             e.printStackTrace();
-            throw new RuntimeException("IOException", e);
+            //This should never happen since we only wrap ByteBuffers
+            throw new RuntimeException(e);
         }
-        ByteBuffer bb = bbos.toByteBuffer();
-
-        return bb;
     }
 
-    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
-        this.subStringPacker.pack(data, substringPackerConsumer, new PrintWriter(out));
+        @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        //CountingOutputStream cout = new CountingOutputStream(compressedOut);
+        this.subStringPacker.pack(decompressedIn, substringPackerConsumer, new PrintWriter(compressedOut));
+
+        return 0;//cout.getWrittenBytes();
     }
 
-    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
-        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        int beginPosition = decompressedOut.position();
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, decompressedOut);
 
-        String source = getString(compressedData);
+        String source = getString(compressedIn);
         for (int i = 0, count = source.length(); i < count; i++) {
             char ch = source.charAt(i);
             if (ch == '<') {
@@ -85,22 +97,11 @@ public class VerboseStringCompressionModel implements CompressionModel {
             }
         }
         unpacker.endEncoding(null);
-        return unpacker.getUnpackedBytes();
-    }
 
-    @Override
-    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
-        return 0;
-    }
+        int written = decompressedOut.position() - beginPosition;
+        decompressedOut.limit(decompressedOut.position());
 
-    @Override
-    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
-        return 0;
+        return written;
     }
 
     @Override

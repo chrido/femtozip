@@ -90,7 +90,9 @@ public class SubstringPackerTest {
 
     private String pack(String s, String dict) {
         try {
-            ByteBuffer bytes = ByteBuffer.wrap(s.getBytes("UTF-8"));
+            ByteBuffer original = ByteBuffer.wrap(s.getBytes("UTF-8"));
+            ByteBuffer compressed = ByteBuffer.allocate(original.remaining() * 2);
+            ByteBuffer decompressed = ByteBuffer.allocate(original.remaining() * 2);
 
             VerboseStringCompressionModel model;
             if(dict != null) {
@@ -102,8 +104,9 @@ public class SubstringPackerTest {
 
             //System.out.println(getString(bytes));
 
-            ByteBuffer compressed = model.compressDeprecated(bytes);
-            ByteBuffer decompressed = model.decompressDeprecated(compressed);
+            model.compress(original, compressed);
+            compressed.rewind();
+            int writtenBytes = model.decompress(compressed, decompressed);
 
             compressed.rewind();
             String compressedS = getString(compressed);

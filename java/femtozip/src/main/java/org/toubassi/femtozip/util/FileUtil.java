@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 public class FileUtil {
     
@@ -83,7 +84,7 @@ public class FileUtil {
     public static String getString(ByteBuffer buffer) {
         byte[] bytes;
         if(buffer.hasArray()) {
-            bytes = buffer.array();
+            bytes = Arrays.copyOfRange(buffer.array(), 0, buffer.limit());
         } else {
             bytes = new byte[buffer.limit()];
             buffer.get(bytes);

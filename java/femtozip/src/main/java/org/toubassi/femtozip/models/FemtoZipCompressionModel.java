@@ -102,11 +102,15 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
     public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
 
         try {
-            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedIn);
-            int written = decompress(bytesIn, decompressedOut);
+            int startPosition = decompressedOut.position();
 
-            decompressedOut.rewind();
-            decompressedOut.limit(written);
+            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedIn);
+            decompress(bytesIn, decompressedOut);
+
+            int written = decompressedOut.position() - startPosition;
+
+            decompressedOut.limit(decompressedOut.position());
+            decompressedOut.position(startPosition);
 
             return written;
         } catch (IOException e) {
@@ -119,7 +123,7 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
     public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException{
 
         HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), compressedIn);
-        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, decompressedOut);
 
         int nextSymbol;
         while ((nextSymbol = decoder.decodeSymbol()) != -1) {
@@ -133,7 +137,7 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
             }
         }
         unpacker.endEncoding(null);
-        return unpacker.writeOut(decompressedOut);
+        return -1; //TODO
     }
 
     @Deprecated
@@ -194,28 +198,28 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
         }
     }
     
-    public ByteBuffer decompressDeprecated(ByteBuffer compressedBytes) {
-        try {
-            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedBytes);
-            HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
-            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
-        
-            int nextSymbol;
-            while ((nextSymbol = decoder.decodeSymbol()) != -1) {
-                if (nextSymbol > 255) {
-                    int length = nextSymbol - 256;
-                    int offset = decoder.decodeSymbol() | (decoder.decodeSymbol() << 4) | (decoder.decodeSymbol() << 8) | (decoder.decodeSymbol() << 12);
-                    offset = -offset;
-                    unpacker.encodeSubstring(offset, length, null);
-                }
-                else {
-                    unpacker.encodeLiteral(nextSymbol, null);
-                }
-            }
-            unpacker.endEncoding(null);
-            return unpacker.getUnpackedBytes();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    public ByteBuffer decompressDeprecated(ByteBuffer compressedBytes) {
+//        try {
+//            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedBytes);
+//            HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
+//            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
+//
+//            int nextSymbol;
+//            while ((nextSymbol = decoder.decodeSymbol()) != -1) {
+//                if (nextSymbol > 255) {
+//                    int length = nextSymbol - 256;
+//                    int offset = decoder.decodeSymbol() | (decoder.decodeSymbol() << 4) | (decoder.decodeSymbol() << 8) | (decoder.decodeSymbol() << 12);
+//                    offset = -offset;
+//                    unpacker.encodeSubstring(offset, length, null);
+//                }
+//                else {
+//                    unpacker.encodeLiteral(nextSymbol, null);
+//                }
+//            }
+//            unpacker.endEncoding(null);
+//            return unpacker.getUnpackedBytes();
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 }
