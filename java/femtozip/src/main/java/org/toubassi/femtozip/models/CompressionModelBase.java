@@ -23,6 +23,7 @@ import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.SamplingDocumentList;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.femtozip.FemtoZipCompressionModelBuilder;
+import org.toubassi.femtozip.models.huffmann.FrequencyHuffmanModelBuilder;
 import org.toubassi.femtozip.substring.SubstringPacker;
 
 import java.io.*;
@@ -113,7 +114,7 @@ public class CompressionModelBase {
             case VariableInt:
                 return new VariableIntCompressionModel();
             case PureHuffmann:
-                return new PureHuffmanCompressionModel();
+                return new PureHuffmanCompressionModel(FrequencyHuffmanModelBuilder.buildModel(documents));
             case GZipDictionary:
                 return new GZipDictionaryCompressionModel(dictionary);
             case FemtoZip:

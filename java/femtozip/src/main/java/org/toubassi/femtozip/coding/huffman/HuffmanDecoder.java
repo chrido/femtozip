@@ -24,11 +24,13 @@ public class HuffmanDecoder {
     private long bitBuf;
     private int availableBits;
     private boolean endOfStream;
+    private boolean firstbitread;
     
     
     public HuffmanDecoder(HuffmanModel model, InputStream in) {
         this.in = new BitInput(in);
         this.model = model;
+        firstbitread = false;
     }
     
     public int decodeSymbol() throws IOException {
@@ -38,11 +40,15 @@ public class HuffmanDecoder {
         while (availableBits < 32) {
             int newBit = in.readBit();
             if (newBit == -1) {
-                break;
+                if(!firstbitread) //in case the first bit read is already EOF, there is nothing to decode
+                    return -1;
+                else
+                    break;
             }
             if (newBit == 1) {
                 bitBuf |= 1L << availableBits;
             }
+            firstbitread = true;
             availableBits++;
         }
         

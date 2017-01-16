@@ -21,120 +21,28 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import java.nio.ByteBuffer;
+import java.util.zip.InflaterInputStream;
 
 
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
+import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
 import org.toubassi.femtozip.util.StreamUtil;
 
 public class GZipDictionaryCompressionModel implements CompressionModel {
     private byte[] dictionary;
     private static int GZIPMAXSIZE = (1 << 15) - 1;
+    private static int INTERMEDIATE_BUFFER_SIZE = 1024;
 
     public GZipDictionaryCompressionModel(ByteBuffer dictionary) {
-        this.dictionary = new byte[dictionary.remaining()];
-        dictionary.get(this.dictionary);
+        initDictionary(dictionary);
     }
 
     public GZipDictionaryCompressionModel() {
-        dictionary = new byte[0];
+        dictionary = null;
     }
 
-    public void encodeLiteral(int aByte, Object context) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void encodeSubstring(int offset, int length, Object context) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void endEncoding(Object context) {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void build(DocumentList documents) {
-    }
-
-    public void compressDeprecated(ByteBuffer data, OutputStream out) throws IOException {
-        compress(out, data);
-    }
-
-    protected void compress(OutputStream out, ByteBuffer input) throws IOException {
-        Deflater compressor = new Deflater();
-
-        try {
-            compressor.setLevel(Deflater.BEST_COMPRESSION);
-            if (dictionary != null) {
-                compressor.setDictionary(this.dictionary);
-            }
-
-            // Give the compressor the data to compressDeprecated
-            byte[] inputB = new byte[input.remaining()];
-            input.get(inputB); //TODO
-
-            compressor.setInput(inputB);
-            compressor.finish();
-
-            // Compress the data
-            byte[] buf = new byte[1024];
-            while (!compressor.finished()) {
-                int count = compressor.deflate(buf);
-                out.write(buf, 0, count);
-            }
-
-        } finally {
-            compressor.end();
-        }
-    }
-
-    public ByteBuffer decompressDeprecated(ByteBuffer compressedData) {
-        try {
-            byte[] asArray = new byte[compressedData.remaining()];
-            compressedData.get(asArray);
-
-            Inflater decompresser = new Inflater();
-            decompresser.setInput(asArray, 0, asArray.length);
-            byte[] result = new byte[1024];
-            ByteArrayOutputStream bytesOut = new ByteArrayOutputStream(2 * asArray.length);
-            while (!decompresser.finished()) {
-                int resultLength = decompresser.inflate(result);
-                if (resultLength == 0 && decompresser.needsDictionary()) {
-                    decompresser.setDictionary(dictionary);
-                }
-                if (resultLength > 0) {
-                    bytesOut.write(result, 0, resultLength);
-                }
-            }
-            decompresser.end();
-            return ByteBuffer.wrap(bytesOut.toByteArray());
-        }
-        catch (DataFormatException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
-        return 0;
-    }
-
-    @Override
-    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
-        return 0;
-    }
-
-    @Override
-    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
-        return 0;
-    }
-
-    /*@Override
-    public int setDictionary(ByteBuffer dictionary) {
+    private int initDictionary(ByteBuffer dictionary) {
         int i = 0;
         if (dictionary.remaining() > GZIPMAXSIZE) {
             this.dictionary = new byte[GZIPMAXSIZE];
@@ -153,7 +61,145 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
         }
 
         return i;
-    }*/
+    }
+
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        int initialPosition = compressedOut.position();
+        try (ByteBufferOutputStream byteBufferOutputStream = new ByteBufferOutputStream(compressedOut);)
+        {
+            int length = compress(decompressedIn, byteBufferOutputStream);
+            compressedOut.limit(initialPosition + length);
+            compressedOut.position(initialPosition);
+            return length;
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("IOException with ByteBufferOutputStream should never happen");
+        }
+    }
+
+    @Override
+    public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
+        if(decompressedIn.remaining() <= 0)
+            return 0;
+
+        int size = 0;
+
+        Deflater compressor = new Deflater(); //TODO: make field and wrap with locks
+
+        try {
+            compressor.setLevel(Deflater.BEST_COMPRESSION);
+            if (dictionary != null) {
+                compressor.setDictionary(this.dictionary);
+            }
+
+            // Give the compressor the data to compressDeprecated
+            byte[] inputB = new byte[decompressedIn.remaining()];
+            decompressedIn.get(inputB); //TODO, make loop giving junks
+
+            compressor.setInput(inputB);
+            compressor.finish();
+
+            // Compress the data
+            byte[] buf = new byte[INTERMEDIATE_BUFFER_SIZE];
+            while (!compressor.finished()) {
+                int count = compressor.deflate(buf);
+                size += count;
+                compressedOut.write(buf, 0, count);
+            }
+        } finally {
+            compressor.end();
+        }
+
+        return size;
+    }
+
+    @Override
+    public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        if(compressedIn.remaining() <= 0)
+            return 0;
+
+        int initialPosition = decompressedOut.position();
+        Inflater decompresser = new Inflater();
+
+        try {
+            int decompressedLength = 0;
+
+            byte[] asArray = new byte[compressedIn.remaining()];
+            compressedIn.get(asArray);
+
+            decompresser.setInput(asArray, 0, asArray.length);
+            decompressedLength = decompressInteral(decompressedOut, decompresser, decompressedLength);
+
+            decompressedOut.limit(initialPosition + decompressedLength);
+            decompressedOut.position(initialPosition);
+
+            return decompressedLength;
+        }
+        catch (DataFormatException e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            decompresser.end();
+        }
+    }
+
+    public static long copy(final InputStream input, final OutputStream output) throws IOException {
+        byte[] buffer = new byte[INTERMEDIATE_BUFFER_SIZE];
+        long count = 0;
+        int n;
+        while (-1 != (n = input.read(buffer))) {
+            output.write(buffer, 0, n);
+            count += n;
+        }
+        return count;
+    }
+
+    @Override
+    public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
+        int initialPosition = decompressedOut.position();
+
+        Inflater decompresser = new Inflater(); //TODO: create field
+        try {
+            int decompressedLength = 0;
+
+            ByteArrayOutputStream inputData = new ByteArrayOutputStream(); //TODO: set a maxbuffersize or something to not run out of memory
+            copy(compressedIn, inputData);
+
+            byte[] asArray = inputData.toByteArray();
+            decompresser.setInput(asArray, 0, asArray.length);
+            decompressedLength = decompressInteral(decompressedOut, decompresser, decompressedLength);
+
+            decompressedOut.limit(initialPosition + decompressedLength);
+            decompressedOut.position(initialPosition);
+
+            return decompressedLength;
+
+        }
+        catch (DataFormatException e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            decompresser.end();
+        }
+    }
+
+    private int decompressInteral(ByteBuffer decompressedOut, Inflater decompresser, int decompressedLength) throws DataFormatException {
+        byte[] result = new byte[INTERMEDIATE_BUFFER_SIZE];
+        while (!decompresser.finished()) {
+            int resultLength = decompresser.inflate(result);
+            decompressedLength += resultLength;
+
+            if (resultLength == 0 && decompresser.needsDictionary()) {
+                decompresser.setDictionary(dictionary);
+            }
+            if (resultLength > 0) {
+                decompressedOut.put(result, 0, resultLength);
+            }
+        }
+        return decompressedLength;
+    }
 
     @Override
     public void load(DataInputStream in) throws IOException {

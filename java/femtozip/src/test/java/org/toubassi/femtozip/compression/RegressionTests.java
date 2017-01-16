@@ -69,16 +69,17 @@ public class RegressionTests {
             Assert.assertEquals(expectedSize, compressedBytes.remaining());
         }
 
-        ByteBuffer decompressedBytes = ByteBuffer.allocate(sourceBytes.remaining());
+        sourceBytes.rewind();
+        ByteBuffer decompressedBytes = ByteBuffer.allocate(sourceBytes.remaining()*2);
         model.decompress(compressedBytes, decompressedBytes);
+        decompressedBytes.rewind();
 
         sourceBytes.rewind();
-        ByteBuffer slice = decompressedBytes.slice();
         System.out.println("Source:");
         System.out.println(FileUtil.getString(sourceBytes));
         System.out.println("Decompressed");
-        System.out.println(FileUtil.getString(slice));
+        System.out.println(FileUtil.getString(decompressedBytes));
 
-        Assert.assertTrue(sourceBytes.equals(slice));
+        Assert.assertTrue(sourceBytes.equals(decompressedBytes));
     }
 }

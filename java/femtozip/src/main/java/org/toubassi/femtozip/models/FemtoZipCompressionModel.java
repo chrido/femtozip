@@ -69,6 +69,8 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
 
     @Override
     public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        if(decompressedIn.remaining() <= 0)
+            return 0;
 
         BitOutput bitOutputByteBuffer = new BitOutputByteBufferImpl(compressedOut);
         try {
@@ -100,6 +102,9 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
 
     @Override
     public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
+        if(compressedIn.remaining() <= 0)
+            return 0;
+
 
         try {
             int startPosition = decompressedOut.position();
