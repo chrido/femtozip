@@ -45,7 +45,7 @@ public class NativeCompressionModelTest {
 
         //CompressionModel femtoZipCompressionModel = CompressionModelBase.buildModel(new ArrayDocumentList(sourceBytes), dictionaryBytes, CompressionModelVariant.FemtoZip);
 
-        RegressionTests.testBuiltModel(nativeCompressionModel, sourceBytes, 187);
+        RegressionTest.testBuiltModel(nativeCompressionModel, sourceBytes, 187);
 
         File modelFile = File.createTempFile("native", ".fzm");
 
@@ -82,7 +82,7 @@ public class NativeCompressionModelTest {
         for (int i = 0; i < 100; i++) {
             ByteBuffer doc = generateSampleDoc((int)(Math.random() * 100) + 100);
             int i1 = doc.remaining();
-            RegressionTests.testBuiltModel(model, doc, -1);
+            RegressionTest.testBuiltModel(model, doc, -1);
         }
     }
     

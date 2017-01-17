@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 @RunWith(Parameterized.class)
-public class RegressionTests {
+public class RegressionTest {
     public static String PreambleString = "We the People of the United States, in Order to form a more perfect Union, establish Justice, insure domestic Tranquility, provide for the common defence, promote the general Welfare, and secure the Blessings of Liberty to ourselves and our Posterity, do ordain and establish this Constitution for the United States of America.";
     public static String PreambleDictionary = " of and for the a United States ";
     private final String source;
@@ -40,7 +40,7 @@ public class RegressionTests {
         return allCombinations;
     }
 
-    public RegressionTests(String source, String dictionary, CompressionModelVariant model, int expectedSize) {
+    public RegressionTest(String source, String dictionary, CompressionModelVariant model, int expectedSize) {
         this.source = source;
         this.dictionary = ByteBuffer.wrap(dictionary.getBytes());
         this.model = model;
@@ -57,12 +57,12 @@ public class RegressionTests {
     }
 
     public static void testBuiltModel(CompressionModel model, ByteBuffer sourceBytes, int expectedSize) throws IOException {
-        System.out.println(model.getClass().getName());
+        //System.out.println(model.getClass().getName());
 
         ByteBuffer compressedBytes = ByteBuffer.allocate(sourceBytes.remaining() * 2); //just to be on the safe side
         int writtenSize = model.compress(sourceBytes, compressedBytes);
-        System.out.println("Compressed:");
-        System.out.println(FileUtil.getString(compressedBytes));
+        //System.out.println("Compressed:");
+        //System.out.println(FileUtil.getString(compressedBytes));
 
         if (expectedSize >= 0) {
             Assert.assertEquals(expectedSize, writtenSize);
@@ -75,10 +75,10 @@ public class RegressionTests {
         decompressedBytes.rewind();
 
         sourceBytes.rewind();
-        System.out.println("Source:");
-        System.out.println(FileUtil.getString(sourceBytes));
-        System.out.println("Decompressed");
-        System.out.println(FileUtil.getString(decompressedBytes));
+        //System.out.println("Source:");
+        //System.out.println(FileUtil.getString(sourceBytes));
+        //System.out.println("Decompressed");
+        //System.out.println(FileUtil.getString(decompressedBytes));
 
         Assert.assertTrue(sourceBytes.equals(decompressedBytes));
     }
