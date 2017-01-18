@@ -49,12 +49,8 @@ public class GZipCompressionModel implements CompressionModel {
     }
 
     @Override
-    public void load(DataInputStream in) throws IOException {
-        // Nothing to load
-    }
-
-    @Override
     public void save(DataOutputStream out) throws IOException {
-        // Nothing to save
+        // Nothing to save, we put the classname to know which CompressionModel to restore
+        out.writeUTF(getClass().getName());
     }
 }

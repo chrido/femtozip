@@ -113,17 +113,10 @@ public class VariableIntCompressionModel implements CompressionModel {
         return 0;
     }
 
-    public void load(DataInputStream in) throws IOException {
-    }
-
     public void save(DataOutputStream out) throws IOException {
+        out.writeUTF(getClass().getName());
     }
     
-    public void build(DocumentList documents) {
-    }
-    
-
-
     private static byte[] padding = new byte[6];
     
     private int compressAsNonInt(ByteBuffer data, OutputStream out) throws IOException {

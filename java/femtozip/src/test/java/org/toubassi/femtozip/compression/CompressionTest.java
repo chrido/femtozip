@@ -99,7 +99,7 @@ public class CompressionTest {
         ByteBuffer decompressed = ByteBuffer.allocate(sourceBytes.remaining());
 
         VariableIntCompressionModel model = new VariableIntCompressionModel();
-        model.build(new ArrayDocumentList(sourceBytes));
+        //model.build(new ArrayDocumentList(sourceBytes));
 
         int length = model.compress(sourceBytes, compressed);
 

@@ -21,10 +21,13 @@ import java.nio.ByteBuffer;
 import org.toubassi.femtozip.CompressionModel;
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.SamplingDocumentList;
+import org.toubassi.femtozip.coding.huffman.FrequencyHuffmanModel;
 import org.toubassi.femtozip.dictionary.DictionaryOptimizer;
 import org.toubassi.femtozip.models.femtozip.FemtoZipCompressionModelBuilder;
+import org.toubassi.femtozip.models.femtozip.FemtoZipHuffmanModel;
 import org.toubassi.femtozip.models.huffmann.FrequencyHuffmanModelBuilder;
 import org.toubassi.femtozip.substring.SubstringPacker;
+import org.toubassi.femtozip.util.StreamUtil;
 
 import java.io.*;
 import java.text.DecimalFormat;
@@ -57,10 +60,6 @@ import java.util.List;
  * @see org.toubassi.femtozip.models.NativeCompressionModel
  */
 public class CompressionModelBase {
-    
-    protected ByteBuffer dictionary;
-    protected SubstringPacker packer;
-    private int maxDictionaryLength;
 
     public static class ModelOptimizationResult implements Comparable<ModelOptimizationResult>{
         public CompressionModel model;
@@ -127,28 +126,6 @@ public class CompressionModelBase {
         throw new RuntimeException("Unable to match CompressionModelVariant");
     }
 
-    public static CompressionModel instantiateCompressionModel(String modelName) {
-        if (modelName.indexOf('.') == -1) {
-            modelName = FemtoZipCompressionModel.class.getPackage().getName() + "." + modelName;
-            if (!modelName.endsWith("CompressionModel")) {
-                modelName += "CompressionModel";
-            }
-        }
-        CompressionModel model = null;
-        try {
-            Class<?> cls = Class.forName(modelName);
-            model = (CompressionModel)cls.newInstance();
-        }
-        catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-        return model;
-    }
-
     public static CompressionModel buildOptimalModel(DocumentList documents, List<CompressionModelBase.ModelOptimizationResult> results, CompressionModelVariant[] competingModels, boolean verify) throws IOException {
 
         CompressionModelVariant[] models;
@@ -201,25 +178,6 @@ public class CompressionModelBase {
         ModelOptimizationResult bestResult = results.get(0);
         return bestResult.model;
     }
-
-    public ByteBuffer getDictionary() {
-        return dictionary;
-    }
-
-    public int getMaxDictionaryLength() {
-        return maxDictionaryLength;
-    }
-    
-    public void setMaxDictionaryLength(int length) {
-        maxDictionaryLength = length;
-    }
-    
-    protected SubstringPacker getSubstringPacker() {
-        if (packer == null) {
-            packer = new SubstringPacker(dictionary);
-        }
-        return packer;
-    }
     
     /**
      * Loads a model previously saved with save.  You must use this
@@ -235,14 +193,87 @@ public class CompressionModelBase {
             BufferedInputStream bufferedIn = new BufferedInputStream(fileIn);
             DataInputStream in = new DataInputStream(bufferedIn))
         {
-            CompressionModel model = instantiateCompressionModel(in.readUTF());
-            model.load(in);
-
-            in.close();
-            return model;
+            return loadModel(in);
         }
     }
-    
+
+    public static CompressionModel loadModel(DataInputStream in) throws IOException {
+
+        String compressionModel = in.readUTF();
+
+        if (compressionModel.indexOf('.') == -1) {
+            compressionModel = FemtoZipCompressionModel.class.getPackage().getName() + "." + compressionModel;
+            if (!compressionModel.endsWith("CompressionModel")) {
+                compressionModel += "CompressionModel";
+            }
+        }
+
+        if(compressionModel.equals(FemtoZipCompressionModel.class.getName())) {
+            return loadFemtoZipCompressionModel(in);
+        }else if (compressionModel.equals(GZipCompressionModel.class.getName())){
+            return new GZipCompressionModel();
+        }else if (compressionModel.equals(GZipDictionaryCompressionModel.class.getName())) {
+            return loadGZipDictionaryCompressionModel(in);
+        }else if (compressionModel.equals(PureHuffmanCompressionModel.class.getName())) {
+            return loadPureHuffmanCompressionModel(in);
+        } else if(compressionModel.equals(VariableIntCompressionModel.class.getName())) {
+            return new VariableIntCompressionModel();
+        } else if(compressionModel.equals(VerboseStringCompressionModel.class.getName())) {
+            return loadVerboseStringcompressionModel(in);
+        }
+        throw new IOException("Could not initialize Compression Model");
+    }
+
+    private static CompressionModel loadVerboseStringcompressionModel(DataInputStream in) throws IOException {
+        if(in.readInt() == 0) { // file format version, currently 0.
+            ByteBuffer dictionary = readDictionary(in);
+            return new VerboseStringCompressionModel(dictionary);
+        }
+        throw new IOException("Unknown version number");
+    }
+
+    private static ByteBuffer readDictionary(DataInputStream in) throws IOException {
+        int dictionaryLength = in.readInt();
+        if (dictionaryLength == -1) {
+            throw new IOException("No dictionary set, maybe you wanted to restore a GZipCompressionModel?");
+        } else {
+            byte[] dictionary = new byte[dictionaryLength];
+            int totalRead = StreamUtil.readBytes(in, dictionary, dictionaryLength);
+            if (totalRead != dictionaryLength) {
+                throw new IOException("Bad model in stream.  Could not read dictionary of length " + dictionaryLength);
+            }
+
+            return  ByteBuffer.wrap(dictionary);
+        }
+    }
+
+    private static CompressionModel loadPureHuffmanCompressionModel(DataInputStream in) throws IOException {
+        if(in.readInt() == 0) { // file format version, currently 0.
+            FrequencyHuffmanModel frequencyHuffmanModel = new FrequencyHuffmanModel(in);
+            return new PureHuffmanCompressionModel(frequencyHuffmanModel);
+        }
+        throw new IOException("Unknown version number");
+    }
+
+    private static CompressionModel loadGZipDictionaryCompressionModel(DataInputStream in) throws IOException {
+        if(in.readInt() == 0) { // file format version, currently 0.
+            ByteBuffer dictionary = readDictionary(in);
+            return new GZipDictionaryCompressionModel(dictionary);
+        }
+        throw new IOException("Unknown version number");
+    }
+
+    private static CompressionModel loadFemtoZipCompressionModel(DataInputStream in) throws IOException {
+        int version = in.readInt();//Version
+
+        if(version == 0) {
+            ByteBuffer dictionary = DictionaryOptimizer.readDictionary(in);
+            FemtoZipHuffmanModel femtoZipHuffmanModel = new FemtoZipHuffmanModel(in);
+            return new FemtoZipCompressionModel(femtoZipHuffmanModel, dictionary);
+        }
+        throw new IOException("Unknown version number");
+    }
+
     /**
      * Saves the specified model to the specified file path.
      * @param path

@@ -18,6 +18,8 @@ package org.toubassi.femtozip.models;
 import java.io.*;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 
 
 import org.toubassi.femtozip.CompressionModel;
@@ -113,12 +115,17 @@ public class VerboseStringCompressionModel implements CompressionModel {
     }
 
     @Override
-    public void load(DataInputStream in) throws IOException {
-
-    }
-
-    @Override
     public void save(DataOutputStream out) throws IOException {
+        out.writeUTF(getClass().getName());
 
+        out.writeInt(0); //Version
+
+        out.writeInt(dictionary.remaining());
+
+        WritableByteChannel channel = Channels.newChannel(out);
+        channel.write(dictionary);
+        channel.close();
+
+        dictionary.rewind();
     }
 }

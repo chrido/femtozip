@@ -101,11 +101,10 @@ public class PureHuffmanCompressionModel implements CompressionModel {
         return written;
     }
 
-    public void load(DataInputStream in) throws IOException {
-        codeModel = new FrequencyHuffmanModel(in);
-    }
-
     public void save(DataOutputStream out) throws IOException {
+        out.writeUTF(getClass().getName());
+        out.writeInt(0); //Version
+
         codeModel.save(out);
     }
 }

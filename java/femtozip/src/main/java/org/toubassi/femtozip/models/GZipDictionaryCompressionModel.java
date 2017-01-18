@@ -38,10 +38,6 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
         initDictionary(dictionary);
     }
 
-    public GZipDictionaryCompressionModel() {
-        dictionary = null;
-    }
-
     private int initDictionary(ByteBuffer dictionary) {
         int i = 0;
         if (dictionary.remaining() > GZIPMAXSIZE) {
@@ -201,25 +197,10 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
         return decompressedLength;
     }
 
-    @Override
-    public void load(DataInputStream in) throws IOException {
-        if(in.readInt() == 0) { // file format version, currently 0.
-
-            int dictionaryLength = in.readInt();
-            if (dictionaryLength == -1) {
-                this.dictionary = null;
-            } else {
-                dictionary = new byte[dictionaryLength];
-                int totalRead = StreamUtil.readBytes(in, dictionary, dictionaryLength);
-                if (totalRead != dictionaryLength) {
-                    throw new IOException("Bad model in stream.  Could not read dictionary of length " + dictionaryLength);
-                }
-            }
-        }
-    }
 
     @Override
     public void save(DataOutputStream out) throws IOException {
+        out.writeUTF(getClass().getName());
         out.writeInt(0); // Poor mans file format version
         if (dictionary == null) {
             out.writeInt(-1);

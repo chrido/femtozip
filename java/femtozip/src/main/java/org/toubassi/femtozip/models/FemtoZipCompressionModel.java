@@ -39,29 +39,17 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
         this.subStringPacker = new SubstringPacker(dictionary);
     }
 
-    public FemtoZipCompressionModel(ByteBuffer dictionary) {
-        this(null, dictionary);
-    }
-
-    public FemtoZipCompressionModel() {
-        codeModel = null;
-        dictionary = ByteBuffer.allocate(0);
-    }
-
-    @Override
-    public void load(DataInputStream in) throws IOException {
-        if(in.readInt() == 0){
-            dictionary = DictionaryOptimizer.readDictionary(in);
-            codeModel = new FemtoZipHuffmanModel(in);
-        }
-    }
-
     @Override
     public void save(DataOutputStream out) throws IOException {
+        out.writeUTF(getClass().getName());
         out.writeInt(0); //Version
+
+        out.writeInt(dictionary.remaining());
 
         WritableByteChannel channel = Channels.newChannel(out);
         channel.write(dictionary);
+        channel.close();
+
         dictionary.rewind();
 
         codeModel.save(out);
@@ -105,7 +93,6 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
     public int decompress(ByteBuffer compressedIn, ByteBuffer decompressedOut) {
         if(compressedIn.remaining() <= 0)
             return 0;
-
 
         try {
             int startPosition = decompressedOut.position();
@@ -203,29 +190,4 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
             throw new RuntimeException(e);
         }
     }
-    
-//    public ByteBuffer decompressDeprecated(ByteBuffer compressedBytes) {
-//        try {
-//            ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedBytes);
-//            HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), bytesIn);
-//            SubstringUnpacker unpacker = new SubstringUnpacker(dictionary);
-//
-//            int nextSymbol;
-//            while ((nextSymbol = decoder.decodeSymbol()) != -1) {
-//                if (nextSymbol > 255) {
-//                    int length = nextSymbol - 256;
-//                    int offset = decoder.decodeSymbol() | (decoder.decodeSymbol() << 4) | (decoder.decodeSymbol() << 8) | (decoder.decodeSymbol() << 12);
-//                    offset = -offset;
-//                    unpacker.encodeSubstring(offset, length, null);
-//                }
-//                else {
-//                    unpacker.encodeLiteral(nextSymbol, null);
-//                }
-//            }
-//            unpacker.endEncoding(null);
-//            return unpacker.getUnpackedBytes();
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
 }

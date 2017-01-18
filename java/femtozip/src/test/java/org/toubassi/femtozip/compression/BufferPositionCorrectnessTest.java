@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import static org.toubassi.femtozip.TestUtil.generateSampleDoc;
+import static org.toubassi.femtozip.TestUtil.getTrainingDocs;
 
 
 @RunWith(Parameterized.class)
@@ -35,10 +36,7 @@ public class BufferPositionCorrectnessTest {
 
     @Test
     public void testCompressingShouldSetCorrectLimitsAndPositions() throws IOException {
-        ArrayList<ByteBuffer> trainingDocs = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            trainingDocs.add(generateSampleDoc((int)(Math.random() * 100) + 100));
-        }
+        ArrayList<ByteBuffer> trainingDocs = getTrainingDocs();
 
         CompressionModel compressionModel = CompressionModelBase.buildModel(variant, new ArrayDocumentList(trainingDocs));
 

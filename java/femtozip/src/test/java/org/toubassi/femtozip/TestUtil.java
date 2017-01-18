@@ -22,6 +22,7 @@ public class TestUtil {
     public static ByteBuffer generateSampleDoc(int length) {
         ByteBuffer out = ByteBuffer.allocate(length);
         generateSampleDoc(out, length);
+        out.rewind();
         return out;
     }
 
@@ -33,6 +34,14 @@ public class TestUtil {
             allCombinations.add(new Object[]{variant});
         }
         return allCombinations;
+    }
+
+    public static ArrayList<ByteBuffer> getTrainingDocs() {
+        ArrayList<ByteBuffer> trainingDocs = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            trainingDocs.add(generateSampleDoc((int)(Math.random() * 100) + 100));
+        }
+        return trainingDocs;
     }
 
 }

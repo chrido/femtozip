@@ -41,7 +41,11 @@ public interface CompressionModel {
      */
     int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException;
 
-    void load(DataInputStream in) throws IOException;
 
+    /**
+     * Saves the model
+     * @param out
+     * @throws IOException
+     */
     void save(DataOutputStream out) throws IOException;
 }

@@ -62,10 +62,11 @@ public class NativeCompressionModelTest {
         try(FileInputStream fileInputStream = new FileInputStream(modelFile.getPath());
             DataInputStream dataInputStream = new DataInputStream(fileInputStream))
         {
-            nativeCompressionModel.load(dataInputStream);
+            throw new RuntimeException("TODO");
+            //nativeCompressionModel.load(dataInputStream);
         }
 
-        modelFile.delete();
+        //modelFile.delete();
     }
     
     
