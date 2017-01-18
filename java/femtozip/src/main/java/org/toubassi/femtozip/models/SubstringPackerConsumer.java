@@ -4,9 +4,6 @@ import org.toubassi.femtozip.substring.SubstringPacker;
 
 import java.io.PrintWriter;
 
-/**
- * Created by chris on 15.12.16.
- */
 public class SubstringPackerConsumer implements SubstringPacker.Consumer {
 
     @Override

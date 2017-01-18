@@ -3,9 +3,6 @@ package org.toubassi.femtozip.models.femtozip;
 import org.toubassi.femtozip.coding.huffman.FrequencyHuffmanModel;
 import org.toubassi.femtozip.substring.SubstringPacker;
 
-/**
- * Created by chris on 15.12.16.
- */
 public class FemtoZipHuffmanModelBuilder implements SubstringPacker.Consumer {
     private int[] literalLengthHistogram = new int[256 + 256 + 1]; // 256 for each unique literal byte, 256 for all possible length, plus 1 for EOF
     private int[] offsetHistogramNibble0 = new int[16];

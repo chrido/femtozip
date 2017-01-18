@@ -3,9 +3,6 @@ package org.toubassi.femtozip.coding.huffman;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * Created by chris on 13.01.17.
- */
 public class CountingOutputStream extends OutputStream {
 
     private final OutputStream out;

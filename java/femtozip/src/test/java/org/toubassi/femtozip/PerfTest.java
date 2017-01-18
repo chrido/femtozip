@@ -2,6 +2,7 @@ package org.toubassi.femtozip;
 
 import java.nio.ByteBuffer;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.toubassi.femtozip.models.CompressionModelBase;
 import org.toubassi.femtozip.models.CompressionModelVariant;
@@ -10,6 +11,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 
+@Ignore
 public class PerfTest {
     @Test
     public void testPerformance() throws IOException {
@@ -26,8 +28,6 @@ public class PerfTest {
         ) {
             while (((line = br.readLine()) != null) && (i < 200)) {
                 documents.add(ByteBuffer.wrap(line.getBytes(Charset.forName("UTF-8"))));
-
-
                 i ++;
             }
         }
@@ -35,13 +35,18 @@ public class PerfTest {
         ArrayDocumentList arrayDocumentList = new ArrayDocumentList(documents);
         long sum = 0;
 
-        for(int j = 1; j < 1; j ++) {
+        for(int j = 1; j < 20; j ++) {
+
+            for (ByteBuffer document : documents) {
+                document.rewind();
+            }
+
             long begin = System.currentTimeMillis();
             CompressionModel compressionModel = CompressionModelBase.buildModel(CompressionModelVariant.FemtoZip, arrayDocumentList);
             long duration = System.currentTimeMillis() - begin;
 
             sum += duration;
-            System.out.println("#run:" + j + "#duration:" + duration + "#avg:" + sum/j);
+            System.out.println("#run:" + j + "#duration:" + duration + "#avg:" + sum/j + "#sum:" + sum);
         }
     }
 }
