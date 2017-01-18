@@ -76,11 +76,16 @@ public class DictionaryOptimizer {
         }
     }
 
-    public ByteBuffer optimize(int desiredLength) {
-        suffixArray = SuffixArray.computeSuffixArray(bytes);
-        lcp = SuffixArray.computeLCP(bytes, suffixArray);
-        computeSubstrings();
-        return pack(desiredLength);
+    public ByteBuffer optimize(int desiredLength) { //TODO: subsequent calls should only pack
+        if(bytes.length > 0) {
+            suffixArray = SuffixArray.computeSuffixArray(bytes);
+            lcp = SuffixArray.computeLCP(bytes, suffixArray);
+            computeSubstrings();
+            return pack(desiredLength);
+        }
+        else {
+            return ByteBuffer.allocate(0);
+        }
     }
 
     protected void computeSubstrings() {

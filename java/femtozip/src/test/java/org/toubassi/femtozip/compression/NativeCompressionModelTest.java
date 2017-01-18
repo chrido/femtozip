@@ -28,6 +28,8 @@ import org.toubassi.femtozip.models.CompressionModelBase;
 import org.toubassi.femtozip.models.CompressionModelVariant;
 import org.toubassi.femtozip.models.NativeCompressionModel;
 
+import static org.toubassi.femtozip.TestUtil.generateSampleDoc;
+
 
 @Ignore
 public class NativeCompressionModelTest {
@@ -85,25 +87,4 @@ public class NativeCompressionModelTest {
             RegressionTest.testBuiltModel(model, doc, -1);
         }
     }
-    
-    private ByteBuffer generateSampleDoc(int length) {
-        ByteBuffer out = ByteBuffer.allocate(length);
-        
-        for (int i = 0; i < length; i++) {
-            if (Math.random() < .1) {
-                out.put((byte) 0);
-                out.put((byte) 1);
-                out.put((byte) 2);
-                out.put((byte) 3);
-                out.put((byte) 4);
-                out.put((byte) 5);
-            }
-            else {
-                out.put((byte) (Math.random() * 0xff));
-            }
-        }
-        
-        return out;
-    }
-
 }

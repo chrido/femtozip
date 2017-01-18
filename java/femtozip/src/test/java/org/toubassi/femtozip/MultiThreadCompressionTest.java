@@ -17,7 +17,6 @@ package org.toubassi.femtozip;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 
 import java.nio.ByteBuffer;
@@ -44,14 +43,7 @@ public class MultiThreadCompressionTest {
 
     @Parameterized.Parameters()
     public static Iterable<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                /*{ new VerboseStringCompressionModel() },
-                { new FemtoZipCompressionModel() },
-                { new GZipDictionaryCompressionModel() },
-                { new GZipCompressionModel() },*/
-                { CompressionModelVariant.PureHuffmann },
-                /*{ new VariableIntCompressionModel() }*/
-        });
+        return TestUtil.getActiveCompressionModels();
     }
 
     @Test
@@ -66,7 +58,7 @@ public class MultiThreadCompressionTest {
         CompressionModel model;
         String source;
         ByteBuffer dictionary;
-        Exception e;
+        Throwable e;
         
         public CompressionThread(long runTimeMillis, CompressionModel model, ByteBuffer dictionary) {
             runTime = runTimeMillis;
@@ -83,10 +75,10 @@ public class MultiThreadCompressionTest {
         
         private void testModel(CompressionModel model, String source) {
             ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
-            ByteBuffer compressedBytes = ByteBuffer.allocate(sourceBytes.remaining());
-            model.compress(sourceBytes, compressedBytes);
-
+            ByteBuffer compressedBytes = ByteBuffer.allocate(sourceBytes.remaining() * 3);
             ByteBuffer decompressedBytes = ByteBuffer.allocate(sourceBytes.remaining());
+
+            model.compress(sourceBytes, compressedBytes);
             model.decompress(compressedBytes, decompressedBytes);
 
             String decompressedString = getString(decompressedBytes);
@@ -94,21 +86,24 @@ public class MultiThreadCompressionTest {
         }
 
         public void run() {
-            while (true) {
-                if (start == 0) {
-                    start = System.currentTimeMillis();
-                } else if (System.currentTimeMillis() - start > runTime) {
-                    return;
-                }
+            try {
+                while (true) {
+                    if (start == 0) {
+                        start = System.currentTimeMillis();
+                    } else if (System.currentTimeMillis() - start > runTime) {
+                        return;
+                    }
 
-                testModel(model, source);
+                    testModel(model, source);
+                }
+            }
+            catch (Throwable ex) {
+                this.e = ex;
             }
         }
     }
     
     void testThreadedCompressionModel(CompressionModelVariant modelType) throws IOException, InterruptedException {
-        System.out.println(model.getClass().getName());
-
         Random random = new Random();
         StringBuilder dict = new StringBuilder();
         for (int i = 0, count = 256 + random.nextInt(64); i < count; i++) {
@@ -130,13 +125,15 @@ public class MultiThreadCompressionTest {
         for (CompressionThread thread : threads) {
             thread.start();
         }
-        
         for (CompressionThread thread : threads) {
             thread.join();
+        }
+        for (CompressionThread thread : threads) {
             if (thread.e != null) {
+                System.out.println(modelType.name());
                 thread.e.printStackTrace();
+                assertNull("Exception in thread " + thread.getId() + " : " + model.getClass() + " " + thread.e, thread.e);
             }
-            assertNull("Exception in thread " + thread.getId() + " : " + model.getClass() + " " + thread.e, thread.e);
         }
     }
 }

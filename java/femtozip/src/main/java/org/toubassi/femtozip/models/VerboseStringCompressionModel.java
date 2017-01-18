@@ -51,12 +51,14 @@ public class VerboseStringCompressionModel implements CompressionModel {
 
     @Override
     public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        int initialPosition = compressedOut.position();
+
         try {
             try (ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressedOut)) {
                 compress(decompressedIn, bbos);
                 int writtenBytes = bbos.getWrittenBytes();
-                compressedOut.limit(writtenBytes);
-                compressedOut.rewind();
+                compressedOut.position(initialPosition);
+                compressedOut.limit(initialPosition + writtenBytes);
                 return writtenBytes;
             }
         } catch (IOException e) {
@@ -99,7 +101,8 @@ public class VerboseStringCompressionModel implements CompressionModel {
         unpacker.endEncoding(null);
 
         int written = decompressedOut.position() - beginPosition;
-        decompressedOut.limit(decompressedOut.position());
+        decompressedOut.position(beginPosition);
+        decompressedOut.limit(beginPosition + written);
 
         return written;
     }

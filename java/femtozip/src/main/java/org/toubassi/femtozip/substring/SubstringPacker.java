@@ -41,7 +41,8 @@ public class SubstringPacker {
 
         int previousMatchIndex = 0;
         int previousMatchLength = 0;
-        
+
+        int initialPosition = rawBytes.position();
         int curr, count;
         int rawBytesLength = rawBytes.remaining();
         for (curr = 0, count = rawBytesLength; curr < count; curr++) {
@@ -100,6 +101,7 @@ public class SubstringPacker {
                 consumer.encodeLiteral(((int)rawBytes.get(curr)) & 0xff, consumerContext);
             }
         }
+        rawBytes.position(initialPosition + curr);
         consumer.endEncoding(consumerContext);
     }
 

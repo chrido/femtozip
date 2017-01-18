@@ -35,10 +35,12 @@ public class VariableIntCompressionModel implements CompressionModel {
 
     @Override
     public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
+        int initial = compressedOut.position();
+
         try(ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressedOut)){
             int length = compress(decompressedIn, bbos);
-            compressedOut.limit(length);
-            compressedOut.rewind();
+            compressedOut.position(initial);
+            compressedOut.limit(initial + length);
             return length;
         } catch (IOException e) {
             e.printStackTrace();
@@ -51,6 +53,7 @@ public class VariableIntCompressionModel implements CompressionModel {
         if (decompressedIn.remaining() == 0) {
             return 0;
         }
+
         // If its too big to hold an int, or it has a leading 0, we can't do it (leading zeros will get lost in the encoding).
         if (decompressedIn.remaining() > 10 || decompressedIn.get(0) == '0') {
             return compressAsNonInt(decompressedIn, compressedOut);

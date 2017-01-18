@@ -9,5 +9,6 @@ public enum CompressionModelVariant {
     GZipDictionary,
     PureHuffmann,
     VariableInt,
-    Native, VerboseString
+    Native,
+    VerboseString
 }

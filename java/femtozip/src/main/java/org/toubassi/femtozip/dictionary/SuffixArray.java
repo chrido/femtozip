@@ -290,10 +290,8 @@ public class SuffixArray {
         int n = p.length;
         
         for (int i = 0; i < n; i++) {
-            String lcpString = "";
-            if (lcp != null) {
-                lcpString = Integer.toString(lcp[i]) + "\t";
-            }
+            String lcpString = Integer.toString(lcp[i]) + "\t";
+
             out.print(suffixArray[i] + "\t" + lcpString);
             out.write(bytes, suffixArray[i], Math.min(40, n - 1 - suffixArray[i]));
             out.println();

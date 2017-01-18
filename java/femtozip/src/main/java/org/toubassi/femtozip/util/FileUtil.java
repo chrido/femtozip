@@ -82,13 +82,19 @@ public class FileUtil {
     }
 
     public static String getString(ByteBuffer buffer) {
+        return getString(buffer, false);
+    }
+
+    public static String getString(ByteBuffer buffer, Boolean setPosition) {
         byte[] bytes;
         if(buffer.hasArray()) {
-            bytes = Arrays.copyOfRange(buffer.array(), 0, buffer.limit());
+            bytes = Arrays.copyOfRange(buffer.array(), buffer.position(), buffer.limit());
         } else {
-            bytes = new byte[buffer.limit()];
+            bytes = new byte[buffer.limit() - buffer.position()];
             buffer.get(bytes);
         }
+        if(setPosition)
+            buffer.position(buffer.limit());
         return new String(bytes, Charset.forName("UTF-8"));
     }
 

@@ -39,10 +39,11 @@ public class PureHuffmanCompressionModel implements CompressionModel {
         try {
 
             int initalPosition = compressedOut.position();
+
             BitOutputByteBufferImpl bobbi = new BitOutputByteBufferImpl(compressedOut);
             HuffmanEncoder encoder = new HuffmanEncoder(codeModel, bobbi);
             for (int i = 0, count = decompressedIn.remaining(); i < count; i++) {
-                encoder.encodeSymbol(((int) decompressedIn.get(i)) & 0xff);
+                encoder.encodeSymbol(((int) decompressedIn.get()) & 0xff);
             }
             encoder.close();
 

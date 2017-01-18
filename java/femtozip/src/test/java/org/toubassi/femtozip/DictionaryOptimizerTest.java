@@ -51,4 +51,9 @@ public class DictionaryOptimizerTest {
         Assert.assertEquals("000011111", d);
     }
 
+    @Test
+    public void testNoCrashWhenEmptyDocuments() throws IOException {
+        DictionaryOptimizer optimizer = new DictionaryOptimizer(new ArrayDocumentList("", "", ""));
+        optimizer.optimize(64*1024);
+    }
 }

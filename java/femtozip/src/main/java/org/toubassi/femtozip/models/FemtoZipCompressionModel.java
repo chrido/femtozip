@@ -72,11 +72,12 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
         if(decompressedIn.remaining() <= 0)
             return 0;
 
+        int initialPosition = compressedOut.position();
         BitOutput bitOutputByteBuffer = new BitOutputByteBufferImpl(compressedOut);
         try {
             int written = compress(decompressedIn, bitOutputByteBuffer);
-            compressedOut.limit(written);
-            compressedOut.rewind();
+            compressedOut.limit(initialPosition + written);
+            compressedOut.position(initialPosition);
             return written;
 
         } catch (IOException e) {

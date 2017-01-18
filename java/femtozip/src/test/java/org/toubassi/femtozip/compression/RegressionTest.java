@@ -52,6 +52,7 @@ public class RegressionTest {
         ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
 
         CompressionModel compressionModel = CompressionModelBase.buildModel(this.model, new ArrayDocumentList(sourceBytes), dictionary);
+        sourceBytes.rewind();
 
         testBuiltModel(compressionModel, sourceBytes, expectedSize);
     }
@@ -65,8 +66,8 @@ public class RegressionTest {
         //System.out.println(FileUtil.getString(compressedBytes));
 
         if (expectedSize >= 0) {
-            Assert.assertEquals(expectedSize, writtenSize);
-            Assert.assertEquals(expectedSize, compressedBytes.remaining());
+            Assert.assertEquals("Error: " + model.getClass().getName(), expectedSize, writtenSize);
+            Assert.assertEquals("Error: " + model.getClass().getName(), expectedSize, compressedBytes.remaining());
         }
 
         sourceBytes.rewind();
@@ -80,6 +81,6 @@ public class RegressionTest {
         //System.out.println("Decompressed");
         //System.out.println(FileUtil.getString(decompressedBytes));
 
-        Assert.assertTrue(sourceBytes.equals(decompressedBytes));
+        Assert.assertTrue("Error: " + model.getClass().getName(), sourceBytes.equals(decompressedBytes));
     }
 }
