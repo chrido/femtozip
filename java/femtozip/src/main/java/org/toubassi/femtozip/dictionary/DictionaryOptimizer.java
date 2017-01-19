@@ -24,10 +24,8 @@ import org.toubassi.femtozip.util.StreamUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 
 public class DictionaryOptimizer {
@@ -200,47 +198,11 @@ public class DictionaryOptimizer {
 
         // First, filter out the substrings to remove overlap since
         // many of the substrings are themselves substrings of each other (e.g. 'http://', 'ttp://').
-
-        SubstringArray pruned = new SubstringArray(1024);
-        int size = 0;
-
-        for (int i = substrings.size() - 1; i >= 0; i--) {
-
-            // Is this substring already covered within the pruned list?
-            // e.g. if we are considering "ttp://" when "http://" has been selected.
-            boolean alreadyCovered = false;
-            for (int j = 0, c = pruned.size(); j < c; j++) {
-                if (pruned.indexOf(j, substrings, i, bytes, suffixArray) != -1) {
-
-                    alreadyCovered = true;
-                    break;
-                }
-            }
-
-            if (alreadyCovered) {
-                continue;
-            }
-
-            // If this is a superstring of already included strings, this will subsume them
-            // e.g. we are adding "rosebuds" but have previously added "rose" and "buds"
-            for (int j = pruned.size() - 1; j >= 0; j--) {
-                if (substrings.indexOf(i, pruned, j, bytes, suffixArray) != -1) {
-                    size -= pruned.length(j);
-                    pruned.remove(j);
-                }
-            }
-            pruned.setScore(pruned.size(), substrings.index(i), substrings.length(i), substrings.score(i));
-            size += substrings.length(i);
-            // We calculate 2x because when we lay the strings out end to end we will merge common prefix/suffixes
-            if (size >= 2*desiredLength) {
-                break;
-            }
-        }
+        SubstringArray pruned = getSubstringArrayPruned(desiredLength);
 
         // Now pack the substrings end to end, taking advantage of potential prefix/suffix overlap
         // (e.g. if we are packing "toubassi" and "silence", pack it as
         // "toubassilence" vs "toubassisilence")
-
         byte[] packed = new byte[desiredLength];
         int pi = desiredLength;
 
@@ -257,6 +219,70 @@ public class DictionaryOptimizer {
             packed = Arrays.copyOfRange(packed, pi, packed.length);
         }
         return ByteBuffer.wrap(packed);
+    }
+
+
+    public Map<byte[], Integer> calcSubstringScores(int desiredLength) {
+
+        Map<byte[], Integer> dictSubScores = new LinkedHashMap<>();
+        SubstringArray pruned = getSubstringArrayPruned(desiredLength);
+
+        byte[] packed = new byte[desiredLength];
+        int pi = desiredLength;
+
+        int i, count;
+        for (i = 0, count = pruned.size(); i < count && pi > 0; i++) {
+            int length = pruned.length(i);
+            if (pi - length < 0) {
+                length = pi;
+            }
+            pi -= prepend(bytes, suffixArray[pruned.index(i)], packed, pi, length);
+
+            //storing substring and scores of the dictionary
+            byte[] subString = Arrays.copyOfRange(bytes, suffixArray[pruned.index(i)], suffixArray[pruned.index(i)] + length);
+            dictSubScores.put(subString, pruned.score(i));
+        }
+
+        return dictSubScores;
+    }
+
+    private SubstringArray getSubstringArrayPruned(int desiredLength) {
+        SubstringArray pruned = new SubstringArray(1024);
+        int size = 0;
+
+        for (int i = substrings.size() - 1; i >= 0; i--) {
+            boolean alreadyCovered = false;
+            for (int j = 0, c = pruned.size(); j < c; j++) {
+                if (pruned.indexOf(j, substrings, i, bytes, suffixArray) != -1) {
+
+                    alreadyCovered = true;
+                    break;
+                }
+            }
+
+            if (alreadyCovered) {
+                continue;
+            }
+
+            for (int j = pruned.size() - 1; j >= 0; j--) {
+                if (substrings.indexOf(i, pruned, j, bytes, suffixArray) != -1) {
+                    size -= pruned.length(j);
+                    pruned.remove(j);
+                }
+            }
+            pruned.setScore(pruned.size(), substrings.index(i), substrings.length(i), substrings.score(i));
+
+
+            size += substrings.length(i);
+
+
+            // We calculate 2x because when we lay the strings out end to end we will merge common prefix/suffixes
+            if (size >= 2*desiredLength) {
+                break;
+            }
+
+        }
+        return pruned;
     }
 
     /***
