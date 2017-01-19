@@ -80,6 +80,7 @@ public class DictionaryOptimizer {
         if(bytes.length > 0) {
             suffixArray = SuffixArray.computeSuffixArray(bytes);
             lcp = SuffixArray.computeLCP(bytes, suffixArray);
+
             computeSubstrings();
             return pack(desiredLength);
         }

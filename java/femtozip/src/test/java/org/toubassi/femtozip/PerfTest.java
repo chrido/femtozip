@@ -45,8 +45,13 @@ public class PerfTest {
             CompressionModel compressionModel = CompressionModelBase.buildModel(CompressionModelVariant.FemtoZip, arrayDocumentList);
             long duration = System.currentTimeMillis() - begin;
 
-            sum += duration;
-            System.out.println("#run:" + j + "#duration:" + duration + "#avg:" + sum/j + "#sum:" + sum);
+            if(j > 3) {
+                sum += duration;
+                System.out.println("#run:" + j + "#duration:" + duration + "#avg:" + sum / (j-3) + "#sum:" + sum);
+            }
+            else {
+                System.out.println("Warming up");
+            }
         }
     }
 }

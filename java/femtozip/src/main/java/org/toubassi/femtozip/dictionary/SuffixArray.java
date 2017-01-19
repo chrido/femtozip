@@ -21,8 +21,6 @@
  */
 package org.toubassi.femtozip.dictionary;
 
-import java.nio.ByteBuffer;
-
 import java.io.PrintStream;
 import java.util.Arrays;
 
@@ -251,25 +249,24 @@ public class SuffixArray {
     }
     
     public static int[] computeLCP(byte[] bytes, int[] suffixArray) {
-        int[] a = suffixArray;
-        byte[] s = bytes;
-        int n = suffixArray.length;
-        int[] lcp = new int[n];
 
-        int i, h;
-        int[] inv = new int[n];
+        int n = suffixArray.length;
+        final int[] lcp = new int[n];
+
+        int i;
+        int[] rank = new int[n];
 
         for (i = 0; i < n; i++) {
-            inv[a[i]] = i;
+            rank[suffixArray[i]] = i;
         }
 
-        h = 0;
+        int h = 0;
         for (i = 0; i < n - 1; i++) {
-            int x = inv[i];
-            int j = a[x - 1];
+            int x = rank[i];
+            int j = suffixArray[x - 1];
             int p1 = i + h;
             int p0 = j + h;
-            while (p1 < (n-1) && p0 < (n-1) && s[p1++] == s[p0++]) {
+            while (p1 < (n-1) && p0 < (n-1) && bytes[p1++] == bytes[p0++]) {
                 h++;
             }
             lcp[x] = h;
@@ -281,7 +278,7 @@ public class SuffixArray {
         lcp[0] = 0;
         return lcp;
     }
-         
+
     /**
      * For debugging
      */
