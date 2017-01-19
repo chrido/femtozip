@@ -64,7 +64,7 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
         BitOutput bitOutputByteBuffer = new BitOutputByteBufferImpl(compressedOut);
         try {
             int written = compress(decompressedIn, bitOutputByteBuffer);
-            compressedOut.limit(initialPosition + written);
+            compressedOut.flip();
             compressedOut.position(initialPosition);
             return written;
 
@@ -82,6 +82,9 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
     }
 
     private int compress(ByteBuffer decompressedIn, BitOutput compressedOut) throws IOException {
+        if(decompressedIn.remaining() == 0)
+            return 0;
+
         HuffmanEncoder huffmanEncoder = new HuffmanEncoder(codeModel.createModel(), compressedOut);
         this.subStringPacker.pack(decompressedIn, this, huffmanEncoder);
         compressedOut.flush();
@@ -95,17 +98,10 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
             return 0;
 
         try {
-            int startPosition = decompressedOut.position();
-
             ByteBufferInputStream bytesIn = new ByteBufferInputStream(compressedIn);
             decompress(bytesIn, decompressedOut);
 
-            int written = decompressedOut.position() - startPosition;
-
-            decompressedOut.limit(decompressedOut.position());
-            decompressedOut.position(startPosition);
-
-            return written;
+            return decompressedOut.remaining();
         } catch (IOException e) {
             //with Bytebuffers this should never occure, this is why we throw a RuntimeException
             throw new RuntimeException(e);
@@ -114,6 +110,8 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
 
     @Override
     public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException{
+
+        int startPosition = decompressedOut.position();
 
         HuffmanDecoder decoder = new HuffmanDecoder(codeModel.createModel(), compressedIn);
         SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, decompressedOut);
@@ -130,7 +128,10 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
             }
         }
         unpacker.endEncoding(null);
-        return -1; //TODO
+
+        decompressedOut.flip();
+        decompressedOut.position(startPosition);
+        return decompressedOut.remaining();
     }
 
     @Deprecated

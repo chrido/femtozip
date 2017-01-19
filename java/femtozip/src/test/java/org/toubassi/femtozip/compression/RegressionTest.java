@@ -9,9 +9,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.toubassi.femtozip.ArrayDocumentList;
 import org.toubassi.femtozip.CompressionModel;
+import org.toubassi.femtozip.coding.huffman.ByteBufferInputStream;
+import org.toubassi.femtozip.coding.huffman.ByteBufferOutputStream;
 import org.toubassi.femtozip.models.CompressionModelBase;
 import org.toubassi.femtozip.models.*;
-import org.toubassi.femtozip.util.FileUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,22 +49,20 @@ public class RegressionTest {
     }
 
     @Test
-    public void testModel() throws IOException {
+    public void testUsingByteBuffers() throws IOException {
         ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
 
         CompressionModel compressionModel = CompressionModelBase.buildModel(this.model, new ArrayDocumentList(sourceBytes), dictionary);
         sourceBytes.rewind();
 
-        testBuiltModel(compressionModel, sourceBytes, expectedSize);
+        testBuiltModelBytebuffers(compressionModel, sourceBytes, expectedSize);
     }
 
-    public static void testBuiltModel(CompressionModel model, ByteBuffer sourceBytes, int expectedSize) throws IOException {
+    public static void testBuiltModelBytebuffers(CompressionModel model, ByteBuffer sourceBytes, int expectedSize) throws IOException {
         //System.out.println(model.getClass().getName());
 
         ByteBuffer compressedBytes = ByteBuffer.allocate(sourceBytes.remaining() * 2); //just to be on the safe side
         int writtenSize = model.compress(sourceBytes, compressedBytes);
-        //System.out.println("Compressed:");
-        //System.out.println(FileUtil.getString(compressedBytes));
 
         if (expectedSize >= 0) {
             Assert.assertEquals("Error: " + model.getClass().getName(), expectedSize, writtenSize);
@@ -76,11 +75,42 @@ public class RegressionTest {
         decompressedBytes.rewind();
 
         sourceBytes.rewind();
-        //System.out.println("Source:");
-        //System.out.println(FileUtil.getString(sourceBytes));
-        //System.out.println("Decompressed");
-        //System.out.println(FileUtil.getString(decompressedBytes));
-
         Assert.assertTrue("Error: " + model.getClass().getName(), sourceBytes.equals(decompressedBytes));
     }
+
+    @Test
+    public void testUsingInputOutputStreams() throws IOException {
+        ByteBuffer sourceBytes = ByteBuffer.wrap(source.getBytes());
+
+
+        CompressionModel compressionModel = CompressionModelBase.buildModel(this.model, new ArrayDocumentList(sourceBytes), dictionary);
+        sourceBytes.rewind();
+
+        testBuiltModelStreams(compressionModel, sourceBytes, expectedSize);
+    }
+
+    public static void testBuiltModelStreams(CompressionModel model, ByteBuffer sourceBytes, int expectedSize) throws IOException {
+        //System.out.println(model.getClass().getName());
+
+        ByteBuffer backingCompressed = ByteBuffer.allocate(sourceBytes.remaining() * 3); //just to be on the safe side
+        ByteBufferOutputStream bbos = new ByteBufferOutputStream(backingCompressed);
+        int writtenSize = model.compress(sourceBytes, bbos);
+        backingCompressed.flip();
+
+        if (expectedSize >= 0) {
+            Assert.assertEquals("Error: " + model.getClass().getName(), expectedSize, writtenSize);
+            Assert.assertEquals("Error: " + model.getClass().getName(), expectedSize, backingCompressed.remaining());
+        }
+
+        sourceBytes.rewind();
+
+
+        ByteBufferInputStream bbis = new ByteBufferInputStream(backingCompressed);
+        ByteBuffer decompressedBytes = ByteBuffer.allocate(sourceBytes.remaining()*3);
+        model.decompress(bbis, decompressedBytes);
+
+        sourceBytes.rewind();
+        Assert.assertTrue("Error: " + model.getClass().getName(), sourceBytes.equals(decompressedBytes));
+    }
+
 }

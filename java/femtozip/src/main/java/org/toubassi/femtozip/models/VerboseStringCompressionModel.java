@@ -20,6 +20,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
 
 
 import org.toubassi.femtozip.CompressionModel;
@@ -59,8 +60,8 @@ public class VerboseStringCompressionModel implements CompressionModel {
             try (ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressedOut)) {
                 compress(decompressedIn, bbos);
                 int writtenBytes = bbos.getWrittenBytes();
+                compressedOut.flip();
                 compressedOut.position(initialPosition);
-                compressedOut.limit(initialPosition + writtenBytes);
                 return writtenBytes;
             }
         } catch (IOException e) {
@@ -72,10 +73,10 @@ public class VerboseStringCompressionModel implements CompressionModel {
 
         @Override
     public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
-        //CountingOutputStream cout = new CountingOutputStream(compressedOut);
-        this.subStringPacker.pack(decompressedIn, substringPackerConsumer, new PrintWriter(compressedOut));
+        CountingOutputStream cout = new CountingOutputStream(compressedOut);
+        this.subStringPacker.pack(decompressedIn, substringPackerConsumer, new PrintWriter(cout));
 
-        return 0;//cout.getWrittenBytes();
+        return cout.getWrittenBytes();
     }
 
     @Override
@@ -111,7 +112,40 @@ public class VerboseStringCompressionModel implements CompressionModel {
 
     @Override
     public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
-        return 0;
+        SubstringUnpacker unpacker = new SubstringUnpacker(dictionary, decompressedOut);
+        InputStreamReader reader = new InputStreamReader(compressedIn, Charset.forName("UTF-8"));
+
+        int initalPos = decompressedOut.position();
+
+        int r, l;
+        while ((r = reader.read()) != -1) {
+            char chr = (char) r;
+            if(chr == '<') {
+                String substring = "";
+                while ((l = reader.read()) != -1) {
+                    char chl = (char)l;
+                    if(chl == '>') {
+                        break;
+                    }
+                    else {
+                        substring = substring + chl;
+                    }
+                }
+                String[] parts = substring.split(",");
+                int offset = Integer.parseInt(parts[0]);
+                int length = Integer.parseInt(parts[1]);
+
+                unpacker.encodeSubstring(offset, length, null);
+            } else {
+                unpacker.encodeLiteral((int) chr, null);
+            }
+        }
+        unpacker.endEncoding(null);
+
+        decompressedOut.flip();
+        decompressedOut.position(initalPos);
+
+        return decompressedOut.remaining();
     }
 
     @Override

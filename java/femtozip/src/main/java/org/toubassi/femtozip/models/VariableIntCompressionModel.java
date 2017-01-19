@@ -39,8 +39,8 @@ public class VariableIntCompressionModel implements CompressionModel {
 
         try(ByteBufferOutputStream bbos = new ByteBufferOutputStream(compressedOut)){
             int length = compress(decompressedIn, bbos);
+            compressedOut.flip();
             compressedOut.position(initial);
-            compressedOut.limit(initial + length);
             return length;
         } catch (IOException e) {
             e.printStackTrace();
@@ -110,7 +110,34 @@ public class VariableIntCompressionModel implements CompressionModel {
 
     @Override
     public int decompress(InputStream compressedIn, ByteBuffer decompressedOut) throws IOException {
-        return 0;
+
+        byte[] header = new byte[6];
+        int alreadRead = compressedIn.read(header);
+        if(alreadRead == 0 || alreadRead == -1)
+            return 0;
+
+        if (alreadRead > 5) {
+            return decompressAsNonIntStream(header, compressedIn, decompressedOut);
+        }
+        else {
+            int j = 0;
+            byte b = header[j]; j++;
+
+            int i = b & 0x7F;
+            for (int shift = 7; (b & 0x80) != 0; shift += 7) {
+                b = (byte) header[j];
+                j++;
+                i |= (b & 0x7F) << shift;
+            }
+
+            byte[] bytes = Integer.toString(i).getBytes(Charset.forName("UTF-8"));
+            int initialPosition = decompressedOut.position();
+            decompressedOut.put(bytes);
+            decompressedOut.flip();
+            decompressedOut.position(initialPosition);
+
+            return decompressedOut.remaining();
+        }
     }
 
     public void save(DataOutputStream out) throws IOException {
@@ -128,6 +155,18 @@ public class VariableIntCompressionModel implements CompressionModel {
             size++;
         }
         return size;
+    }
+
+    private int decompressAsNonIntStream(byte[] header, InputStream compressedIn, ByteBuffer compressed) throws IOException {
+
+        int initialPosition = compressed.position();
+        byte b;
+        while ((b = (byte) compressedIn.read()) != -1) {
+            compressed.put(b);
+        }
+        compressed.flip();
+        compressed.position(initialPosition);
+        return compressed.remaining();
     }
     
     private int decompressAsNonInt(ByteBuffer compressedData, ByteBuffer compressed) {

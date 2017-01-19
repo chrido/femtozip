@@ -66,7 +66,7 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
         try (ByteBufferOutputStream byteBufferOutputStream = new ByteBufferOutputStream(compressedOut);)
         {
             int length = compress(decompressedIn, byteBufferOutputStream);
-            compressedOut.limit(initialPosition + length);
+            compressedOut.flip();
             compressedOut.position(initialPosition);
             return length;
         } catch (IOException e) {
@@ -164,6 +164,9 @@ public class GZipDictionaryCompressionModel implements CompressionModel {
             copy(compressedIn, inputData);
 
             byte[] asArray = inputData.toByteArray();
+            if(asArray.length == 0)
+                return 0;
+
             decompresser.setInput(asArray, 0, asArray.length);
             decompressedLength = decompressInteral(decompressedOut, decompresser, decompressedLength);
 

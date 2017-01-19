@@ -37,7 +37,6 @@ public class PureHuffmanCompressionModel implements CompressionModel {
             return 0;
 
         try {
-
             int initalPosition = compressedOut.position();
 
             BitOutputByteBufferImpl bobbi = new BitOutputByteBufferImpl(compressedOut);
@@ -48,7 +47,7 @@ public class PureHuffmanCompressionModel implements CompressionModel {
             encoder.close();
 
             int written = compressedOut.position() - initalPosition;
-            compressedOut.limit(compressedOut.position());
+            compressedOut.flip();
             compressedOut.position(initalPosition);
             return written;
         } catch (IOException e) {

@@ -7,6 +7,7 @@ public class CountingOutputStream extends OutputStream {
 
     private final OutputStream out;
     private int writtenBytes;
+    private int maxMark;
 
     public CountingOutputStream(OutputStream out) {
         this.out = out;
@@ -25,7 +26,13 @@ public class CountingOutputStream extends OutputStream {
         this.writtenBytes += b.length;
     }
 
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        out.write(b, off, len);
+        maxMark = Math.max(maxMark, off + len);
+    }
+
     public int getWrittenBytes() {
-        return writtenBytes;
+        return Math.max(writtenBytes, maxMark);
     }
 }
