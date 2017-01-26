@@ -8,4 +8,6 @@ public interface BitOutput {
     void flush() throws IOException;
 
     int getWrittenBytes();
+
+    void close() throws IOException;
 }

@@ -11,7 +11,7 @@ public class FemtoZipCompressionModelBuilder {
     private final ByteBuffer dictionary;
     private final DocumentList documents;
 
-    protected FemtoZipCompressionModelBuilder(ByteBuffer dictionary, DocumentList documents) {
+    public FemtoZipCompressionModelBuilder(ByteBuffer dictionary, DocumentList documents) {
         this.dictionary = dictionary;
         this.documents = documents;
     }
@@ -27,7 +27,8 @@ public class FemtoZipCompressionModelBuilder {
         SubstringPacker modelBuildingPacker = new SubstringPacker(dictionary);
         FemtoZipHuffmanModelBuilder modelBuilder = new FemtoZipHuffmanModelBuilder();
         for (int i = 0, count = documents.size(); i < count; i++) {
-            modelBuildingPacker.pack(documents.getBB(i), modelBuilder, null);
+            ByteBuffer bb = documents.getBB(i);
+            modelBuildingPacker.pack(bb, modelBuilder, null);
         }
 
         return modelBuilder.createModel();

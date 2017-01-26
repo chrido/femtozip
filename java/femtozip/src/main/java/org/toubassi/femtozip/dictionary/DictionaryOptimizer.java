@@ -15,15 +15,12 @@
  */
 package org.toubassi.femtozip.dictionary;
 
-import java.io.DataInputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 
 import org.toubassi.femtozip.DocumentList;
 import org.toubassi.femtozip.util.StreamUtil;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -218,13 +215,14 @@ public class DictionaryOptimizer {
         if (pi > 0) {
             packed = Arrays.copyOfRange(packed, pi, packed.length);
         }
+
         return ByteBuffer.wrap(packed);
     }
 
 
-    public Map<byte[], Integer> calcSubstringScores(int desiredLength) {
+    public Map<ByteBuffer, Integer> calcSubstringScores(int desiredLength) {
 
-        Map<byte[], Integer> dictSubScores = new LinkedHashMap<>();
+        Map<ByteBuffer, Integer> dictSubScores = new LinkedHashMap<>();
         SubstringArray pruned = getSubstringArrayPruned(desiredLength);
 
         byte[] packed = new byte[desiredLength];
@@ -240,7 +238,7 @@ public class DictionaryOptimizer {
 
             //storing substring and scores of the dictionary
             byte[] subString = Arrays.copyOfRange(bytes, suffixArray[pruned.index(i)], suffixArray[pruned.index(i)] + length);
-            dictSubScores.put(subString, pruned.score(i));
+            dictSubScores.put(ByteBuffer.wrap(subString), pruned.score(i));
         }
 
         return dictSubScores;

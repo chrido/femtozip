@@ -43,4 +43,9 @@ public class BitOutputByteBufferImpl implements BitOutput {
     public int getWrittenBytes() {
         return writtenBytes;
     }
+
+    public void close() throws IOException {
+        flush();
+    }
+
 }

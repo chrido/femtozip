@@ -33,6 +33,6 @@ public class HuffmanEncoder {
     
     public void close() throws IOException {
         model.getCodewordForEOF().write(bitOut);//EOF
-        bitOut.flush();
+        bitOut.close();
     }
 }

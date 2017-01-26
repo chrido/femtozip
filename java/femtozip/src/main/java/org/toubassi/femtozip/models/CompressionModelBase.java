@@ -103,7 +103,22 @@ public class CompressionModelBase {
     }
 
     public static CompressionModel buildModel(CompressionModelVariant model, DocumentList documents, int maxDictionaryLength) throws IOException {
-        return buildModel(model, documents, DictionaryOptimizer.getOptimizedDictionary(documents, maxDictionaryLength));
+        ByteBuffer dictionary = DictionaryOptimizer.getOptimizedDictionary(documents, maxDictionaryLength);
+        rewindReaderIndexDocumentList(documents);
+
+        return buildModel(model, documents, dictionary);
+    }
+
+    private static void rewindReaderIndexDocumentList(DocumentList documents) {
+        for(int i = 0; i < documents.size(); i++) {
+            ByteBuffer bb = null;
+            try {
+                bb = documents.getBB(i); //TODO: Need getBB really an IOException
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            bb.rewind();
+        }
     }
 
     public static CompressionModel buildModel(CompressionModelVariant variant, DocumentList documents, ByteBuffer dictionary) throws IOException {
@@ -117,7 +132,9 @@ public class CompressionModelBase {
             case GZipDictionary:
                 return new GZipDictionaryCompressionModel(dictionary);
             case FemtoZip:
-                return new FemtoZipCompressionModel(FemtoZipCompressionModelBuilder.buildModel(dictionary, documents), dictionary);
+                FemtoZipHuffmanModel femtoZipHuffmanModel = FemtoZipCompressionModelBuilder.buildModel(dictionary, documents);
+                rewindReaderIndexDocumentList(documents);
+                return new FemtoZipCompressionModel(femtoZipHuffmanModel, dictionary);
             case GZip:
                 return new GZipCompressionModel();
             case Native:

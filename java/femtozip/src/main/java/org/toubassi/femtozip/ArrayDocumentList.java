@@ -21,12 +21,13 @@ import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.toubassi.femtozip.util.FileUtil.toArrayResetReader;
 
 public class ArrayDocumentList implements DocumentList {
     
-    private ArrayList<ByteBuffer> docs;
+    private List<ByteBuffer> docs;
     
     public ArrayDocumentList(String... documents) {
         try {
@@ -39,12 +40,12 @@ public class ArrayDocumentList implements DocumentList {
         }
     }
 
-    public ArrayDocumentList(ArrayList<ByteBuffer> documents) {
+    public ArrayDocumentList(List<ByteBuffer> documents) {
         this.docs = documents;
     }
 
     public ArrayDocumentList(ByteBuffer singleDocument) {
-        docs = new ArrayList<ByteBuffer>(1);
+        docs = new ArrayList<>(1);
         docs.add(singleDocument);
     }
 

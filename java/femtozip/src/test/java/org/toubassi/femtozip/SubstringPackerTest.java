@@ -113,7 +113,6 @@ public class SubstringPackerTest {
             String decompressedS = getString(decompressed);
 
             Assert.assertEquals("Compressed: " + compressedS, s, decompressedS);
-
             return compressedS;
         }
         catch (UnsupportedEncodingException e) {
