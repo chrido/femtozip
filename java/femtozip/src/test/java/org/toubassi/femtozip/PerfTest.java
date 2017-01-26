@@ -22,7 +22,7 @@ public class PerfTest {
         ArrayList<ByteBuffer> test = new ArrayList<>();
 
         int trainingdocs = 1000;
-        int testdocs = 100;
+        int testdocs = 20000;
 
         String line;
         int i = 0;
@@ -46,7 +46,7 @@ public class PerfTest {
         ByteBuffer compressionOutput = ByteBuffer.allocate(5000);
         long sumBuilding = 0;
 
-        for(int j = 1; j < 2; j ++) {
+        for(int j = 1; j < 20; j ++) {
 
             for (ByteBuffer document : training) {
                 document.rewind();
@@ -71,7 +71,7 @@ public class PerfTest {
                 //ByteBuffer decompressed = ByteBuffer.allocate(docSize);
                 //int decompress = compressionModel.decompress(compressionOutput, decompressed);
 
-                System.out.println("#compressed:" + resCompressedLength + "#uncompressed:" + docSize);
+                //System.out.println("#compressed:" + resCompressedLength + "#uncompressed:" + docSize);
 
                 originalLength += docSize;
                 compressedLength += resCompressedLength;
