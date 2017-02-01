@@ -48,7 +48,6 @@ public class FemtoZipCompressionModel implements CompressionModel, SubstringPack
 
         WritableByteChannel channel = Channels.newChannel(out);
         channel.write(dictionary);
-        channel.close();
 
         dictionary.rewind();
 
