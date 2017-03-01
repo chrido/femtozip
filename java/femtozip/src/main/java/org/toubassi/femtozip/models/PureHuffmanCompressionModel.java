@@ -34,7 +34,10 @@ public class PureHuffmanCompressionModel implements CompressionModel {
     @Override
     public int compress(ByteBuffer decompressedIn, ByteBuffer compressedOut) {
         if(decompressedIn.remaining() <= 0)
+        {
+            compressedOut.limit(compressedOut.position());
             return 0;
+        }
 
         try {
             int initalPosition = compressedOut.position();
@@ -57,8 +60,9 @@ public class PureHuffmanCompressionModel implements CompressionModel {
 
     @Override
     public int compress(ByteBuffer decompressedIn, OutputStream compressedOut) throws IOException {
-        if(decompressedIn.remaining() <= 0)
+        if(decompressedIn.remaining() <= 0) {
             return 0;
+        }
 
         BitOutputOutputStreamImpl bitOutputOutputStream = new BitOutputOutputStreamImpl(compressedOut);
         HuffmanEncoder encoder = new HuffmanEncoder(codeModel, bitOutputOutputStream);

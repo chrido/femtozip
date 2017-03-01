@@ -65,4 +65,35 @@ public class BufferPositionCorrectnessTest {
         //The limit of the buffer to be read should be reached
         Assert.assertEquals("Error: " + variant.name(), toBeCompressed.limit(), toBeCompressed.position());
     }
+
+    @Test
+    public void testEmptyShouldSetCorrectLimitsAndPositions() throws IOException {
+        ArrayList<ByteBuffer> trainingDocs = getTrainingDocs();
+
+        CompressionModel compressionModel = CompressionModelBase.buildModel(variant, new ArrayDocumentList(trainingDocs));
+
+        ByteBuffer toBeCompressed = ByteBuffer.allocate(500);
+        toBeCompressed.position(0);
+        toBeCompressed.limit(0);
+
+        ByteBuffer compressedResult = ByteBuffer.allocate(1500);
+        compressedResult.put("compressed".getBytes(Charset.forName("UTF-8")));
+        compressedResult.put((byte)1);
+
+
+        int initialCompressedResultPosition = compressedResult.position();
+
+        int compressedWritten = compressionModel.compress(toBeCompressed, compressedResult);
+
+        Assert.assertEquals("Zero should have been written", 0, compressedWritten);
+
+        //Position should be the same as before so we can read until the limit
+        Assert.assertEquals("Error: " + variant.name(), initialCompressedResultPosition, compressedResult.position());
+
+        //The limit of the buffer should be set correctly
+        Assert.assertEquals("Error: " + variant.name(), initialCompressedResultPosition + compressedWritten, compressedResult.limit());
+
+        //The limit of the buffer to be read should be reached
+        Assert.assertEquals("Error: " + variant.name(), toBeCompressed.limit(), toBeCompressed.position());
+    }
 }
