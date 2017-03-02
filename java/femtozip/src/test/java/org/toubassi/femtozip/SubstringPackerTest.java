@@ -69,6 +69,21 @@ public class SubstringPackerTest {
         Assert.assertEquals("garrick toubassi <-17,17>x<-19,8>", pack("garrick toubassi garrick toubassi x garrick"));
         Assert.assertEquals("garrick toubassi <-17,8><-25,16>", pack("garrick toubassi garrick garrick toubassi"));
     }
+
+    @Test
+    public void testSimpleShiftpacking() {
+
+        int bestMatchIndex = 874151;
+        int bestMatchLength = 9878;
+
+        long match = (((long) bestMatchIndex) << 32) | (bestMatchLength & 0xffffffffL);
+
+        int tempbestMatchIndex = (int)(match >> 32);
+        int tempbestMatchLength = (int) match;
+
+        Assert.assertEquals(tempbestMatchIndex, bestMatchIndex);
+        Assert.assertEquals(tempbestMatchLength, bestMatchLength);
+    }
     
     
     @Test

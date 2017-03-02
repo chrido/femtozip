@@ -67,7 +67,7 @@ public class BufferPositionCorrectnessTest {
     }
 
     @Test
-    public void testEmptyShouldSetCorrectLimitsAndPositions() throws IOException {
+    public void testEmptyCompressionPayloadShouldSetCorrectLimitsAndPositions() throws IOException {
         ArrayList<ByteBuffer> trainingDocs = getTrainingDocs();
 
         CompressionModel compressionModel = CompressionModelBase.buildModel(variant, new ArrayDocumentList(trainingDocs));

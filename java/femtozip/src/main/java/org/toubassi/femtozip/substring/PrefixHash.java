@@ -52,36 +52,35 @@ public class PrefixHash {
         hash[hashIndex] = index;
     }
 
-    public final Match getBestMatch(final int index, final ByteBuffer targetBuf) {
+    public final long getBestMatch(final int index, final ByteBuffer targetBuf) {
         int bestMatchIndex = 0;
         int bestMatchLength = 0;
-        
+
         final int bufLen = this.buffer.remaining();
-        
+
         if (bufLen == 0) {
-            return new Match(0, 0);
+            return (((long) 0) << 32) | (0 & 0xffffffffL);
         }
-        
+
         final int targetBufLen = targetBuf.remaining();
 
         final int maxLimit = Math.min(255, targetBufLen - index);
-        
+
         int targetHashIndex = hashIndex(targetBuf, index);
         int candidateIndex = hash[targetHashIndex];
         while (candidateIndex >= 0) {
             int distance;
             if (targetBuf != this.buffer) {
                 distance = index + bufLen - candidateIndex;
-            }
-            else {
+            } else {
                 distance = index - candidateIndex;
             }
-            if (distance > (2<<15)-1) {
+            if (distance > (2 << 15) - 1) {
                 // Since we are iterating over nearest offsets first, once we pass 64k
                 // we know the rest are over 64k too.
                 break;
             }
-            
+
             final int maxMatchJ = index + Math.min(maxLimit, bufLen - candidateIndex);
             int j, k;
             for (j = index, k = candidateIndex; j < maxMatchJ; j++, k++) {
@@ -89,7 +88,7 @@ public class PrefixHash {
                     break;
                 }
             }
-            
+
             final int matchLength = j - index;
             if (matchLength > bestMatchLength) {
                 bestMatchIndex = candidateIndex;
@@ -98,7 +97,6 @@ public class PrefixHash {
             candidateIndex = heap[candidateIndex];
         }
 
-        return new Match(bestMatchIndex, bestMatchLength);
+        return (((long) bestMatchIndex) << 32) | (bestMatchLength & 0xffffffffL);
     }
-    
 }

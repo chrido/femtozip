@@ -21,8 +21,8 @@ import java.nio.ByteBuffer;
 public class SubstringPacker {
     private static final int MinimumMatchLength = PrefixHash.PrefixLength;
     
-    private ByteBuffer dictionary;
     private PrefixHash dictHash;
+    private int dictLen;
     
     public interface Consumer {
         public void encodeLiteral(int aByte, Object context);
@@ -31,13 +31,12 @@ public class SubstringPacker {
     }
     
     public SubstringPacker(ByteBuffer dictionary) {
-        this.dictionary = dictionary;
         dictHash = new PrefixHash(dictionary, true);
+        dictLen = dictionary.remaining();
     }
     
     public void pack(ByteBuffer rawBytes, SubstringPacker.Consumer consumer, Object consumerContext) {
         PrefixHash hash = new PrefixHash(rawBytes, false);
-        int dictLen = dictionary.remaining();
 
         int previousMatchIndex = 0;
         int previousMatchLength = 0;
@@ -50,19 +49,20 @@ public class SubstringPacker {
             int bestMatchLength = 0;
             
             if (curr + PrefixHash.PrefixLength - 1 < count) {
-                Match match = dictHash.getBestMatch(curr, rawBytes);
-                bestMatchIndex = match.bestMatchIndex;
-                bestMatchLength = match.bestMatchLength;
+                long match = dictHash.getBestMatch(curr, rawBytes);
+                bestMatchIndex = (int)(match >> 32);
+                bestMatchLength = (int) match;
 
                 match = hash.getBestMatch(curr, rawBytes);
-                
+                int tempbestMatchIndex = (int)(match>> 32);
+                int tempbestMatchLength = (int)match;
+
                 // Note the >= because we prefer a match that is nearer (and a match
                 // in the string being compressed is always closer than one from the dict).
-                if (match.bestMatchLength >= bestMatchLength) {
-                    bestMatchIndex = match.bestMatchIndex + dictLen;
-                    bestMatchLength = match.bestMatchLength;
+                if (tempbestMatchLength >= bestMatchLength) {
+                    bestMatchIndex = tempbestMatchIndex + dictLen;
+                    bestMatchLength = tempbestMatchLength;
                 }
-                
                 hash.put(curr);
             }
             

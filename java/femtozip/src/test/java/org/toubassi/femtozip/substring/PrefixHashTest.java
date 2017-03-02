@@ -37,10 +37,12 @@ public class PrefixHashTest {
             hash.put(i);
         }
         
-        Match match = hash.getBestMatch(12, bytes);
-        
-        Assert.assertEquals(5, match.bestMatchIndex);
-        Assert.assertEquals(4, match.bestMatchLength);
+        long match = hash.getBestMatch(12, bytes);
+        int bestMatchIndex = (int)(match >> 32);
+        int bestMatchLength = (int) match;
+
+        Assert.assertEquals(5, bestMatchIndex);
+        Assert.assertEquals(4, bestMatchLength);
     }
 
     @Test
@@ -52,10 +54,13 @@ public class PrefixHashTest {
         
         String target = "xxx a ca";
         ByteBuffer targetBytes = ByteBuffer.wrap(target.getBytes("UTF-8"));
-        Match match = hash.getBestMatch(3, targetBytes);
+
+        long match = hash.getBestMatch(3, targetBytes);
+        int bestMatchIndex = (int)(match >> 32);
+        int bestMatchLength = (int) match;
         
-        Assert.assertEquals(12, match.bestMatchIndex);
-        Assert.assertEquals(5, match.bestMatchLength);
+        Assert.assertEquals(12, bestMatchIndex);
+        Assert.assertEquals(5, bestMatchLength);
     }
 
     @Test
@@ -67,10 +72,12 @@ public class PrefixHashTest {
         
         String target = "blah!";
         ByteBuffer targetBytes = ByteBuffer.wrap(target.getBytes("UTF-8"));
-        Match match = hash.getBestMatch(0, targetBytes);
-        
-        Assert.assertEquals(0, match.bestMatchIndex);
-        Assert.assertEquals(0, match.bestMatchLength);
-    }
 
+        long match = hash.getBestMatch(0, targetBytes);
+        int bestMatchIndex = (int)(match >> 32);
+        int bestMatchLength = (int) match;
+
+        Assert.assertEquals(0, bestMatchIndex);
+        Assert.assertEquals(0, bestMatchLength);
+    }
 }
