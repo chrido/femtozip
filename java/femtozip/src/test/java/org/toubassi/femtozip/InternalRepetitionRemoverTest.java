@@ -45,7 +45,7 @@ public class InternalRepetitionRemoverTest {
     private void checkContents(VerboseStringCompressionModel vscm, ByteBuffer doc1, String s) {
         ByteBuffer allocate = ByteBuffer.allocate(500);
         vscm.compress(doc1, allocate);
-        System.out.println(getString(allocate));
+        //System.out.println(getString(allocate));
 
         Assert.assertEquals(s, getString(allocate));
     }
