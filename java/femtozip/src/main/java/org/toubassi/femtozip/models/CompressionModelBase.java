@@ -109,11 +109,11 @@ public class CompressionModelBase {
         return buildModel(model, documents, dictionary);
     }
 
-    private static void rewindReaderIndexDocumentList(DocumentList documents) {
+    public static void rewindReaderIndexDocumentList(DocumentList documents) {
         for(int i = 0; i < documents.size(); i++) {
             ByteBuffer bb = null;
             try {
-                bb = documents.getBB(i); //TODO: Need getBB really an IOException
+                bb = documents.getBB(i); //TODO: Does getBB really needs an IOException?
             } catch (IOException e) {
                 e.printStackTrace();
             }

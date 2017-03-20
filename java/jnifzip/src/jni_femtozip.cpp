@@ -110,7 +110,7 @@ void release_doc_callback(const char *buf, void *user_data) {
     delete[] buf;
 }
 
-JNIEXPORT void JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_buildba(JNIEnv *env, jobject obj, jobject docList) {
+JNIEXPORT void JNICALL Java_org_toubassi_femtozip_models_NativeCompressionModel_build(JNIEnv *env, jobject obj, jobject docList) {
 
     void *model = getModel(env, obj);
     if (model) {

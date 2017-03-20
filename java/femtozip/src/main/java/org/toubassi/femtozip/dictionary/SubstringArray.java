@@ -150,17 +150,6 @@ public class SubstringArray {
         
         for (int i = prefixes[index1], n = prefixes[index1] + length1 - length2 + 1; i < n; i++) {
             boolean found = true;
-            /*ByteBuffer sliceI = s.slice(i, length2);
-            ByteBuffer sliceJ = s.slice(prefixes[index2], length2);
-
-            while (sliceI.isReadable()) {
-                if(sliceI.readByte() != sliceJ.readByte()) {
-                    found = false;
-                    break;
-                }
-            }*/
-
-            /* ORIGINAL */
             for (int j = prefixes[index2],
                  nj = prefixes[index2] + length2,
                  i1 = i;
