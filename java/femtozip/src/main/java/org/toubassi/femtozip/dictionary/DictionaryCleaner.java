@@ -52,10 +52,41 @@ public class DictionaryCleaner implements SubstringPacker.Consumer{
     }
 
     public ByteBuffer getScrubbedDictionary() {
-        return getScrubbedDictionary(1);
+        return getScrubbedDictionary(1, 5);
     }
 
-    public ByteBuffer getScrubbedDictionary(int minUsage) {
+    public ByteBuffer getScrubbedDictionary(int minUsage, int mingap) {
+        int entryCount = 0;
+        for(int entry : dictUsage) {
+            if(entry >= minUsage) {
+                entryCount++;
+            }
+        }
+
+        ByteBuffer bb = ByteBuffer.allocate(entryCount);
+        int gapcount = 0;
+        for(int i = 0; i < dictLength; i++) {
+            if(dictUsage[i] > minUsage) {
+                gapcount++;
+            }
+            else {
+                if (gapcount > mingap) {
+                    gapcount = 0;
+                }
+                else {
+                    for (; gapcount >= 0; gapcount--) {
+                        bb.put(dictionary.get(i - gapcount));
+                    }
+                    gapcount = 0;
+                }
+            }
+        }
+        bb.flip();
+
+        return bb;
+    }
+
+    public ByteBuffer simpleScrubber(int minUsage) {
         int entryCount = 0;
         for(int entry : dictUsage) {
             if(entry >= minUsage) {
@@ -93,21 +124,18 @@ public class DictionaryCleaner implements SubstringPacker.Consumer{
 
             for (int i = startDict; i < endDict; i++) {
                 dictUsage[i]++;
-                currentIndex++;
-
             }
 
             if (end > 0) { //the dictionary entry and content overlaps
                 for (int i = 0; i < end; i++) {
                     internalUsage++;
-                    currentIndex++;
                 }
             }
 
         } else { //internal entry
             internalUsage += length;
-            currentIndex += length;
         }
+        currentIndex += length;
     }
 
     @Override
@@ -126,6 +154,7 @@ public class DictionaryCleaner implements SubstringPacker.Consumer{
         for(int i = 0; i < arrayDocumentList.size(); i++) {
             ByteBuffer document = arrayDocumentList.getBB(i);
             sp.pack(document, this, null);
+            currentIndex = 0;
         }
     }
 }

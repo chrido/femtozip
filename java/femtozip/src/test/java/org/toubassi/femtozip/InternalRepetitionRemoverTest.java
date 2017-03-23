@@ -32,17 +32,24 @@ public class InternalRepetitionRemoverTest {
         docs.add(doc2);
         docs.add(doc3);
 
-        ByteBuffer dict = testDictScrubbing("6aaaaaabcde", "6aaaaaabcde6aaaaaaerqw6aaaaaajkloX6aaaaaa", new ArrayDocumentList(docs));
+        //Dictionary old
+        ByteBuffer oldDict = ByteBuffer.wrap("6aaaaaabcde6aaaaaaerqw6aaaaaajkloX6aaaaaa".getBytes("UTF-8"));
+        rewindReaderIndexDocumentList(new ArrayDocumentList(docs));
+        checkContents(oldDict, doc1, "<-41,11>X<-12,11>");
+        checkContents(oldDict, doc2, "<-19,11>Y<-12,11>");
+        checkContents(oldDict, doc3, "<-30,11>X<-12,11>");
 
-        VerboseStringCompressionModel vscm = new VerboseStringCompressionModel(dict);
 
-
-        checkContents(vscm, doc1, "<-11,11>X<-12,11>");
-        checkContents(vscm, doc2, "<-11,7>jkloY<-12,11>");
-        checkContents(vscm, doc3, "<-11,7>erqwX<-12,11>");
+        //Dictionary scrubbed - less compression but smaller dictionary
+        rewindReaderIndexDocumentList(new ArrayDocumentList(docs));
+        ByteBuffer dict = testDictScrubbing("6aaaaaabcde6aaaaaaerqw6aaaaaajklo", "6aaaaaabcde6aaaaaaerqw6aaaaaajkloX6aaaaaa", new ArrayDocumentList(docs));
+        checkContents(dict, doc1, "<-33,11>X<-12,11>");
+        checkContents(dict, doc2, "<-11,11>Y<-12,11>");
+        checkContents(dict, doc3, "<-22,11>X<-12,11>");
     }
 
-    private void checkContents(VerboseStringCompressionModel vscm, ByteBuffer doc1, String s) {
+    private void checkContents(ByteBuffer dict, ByteBuffer doc1, String s) {
+        VerboseStringCompressionModel vscm = new VerboseStringCompressionModel(dict);
         ByteBuffer allocate = ByteBuffer.allocate(500);
         vscm.compress(doc1, allocate);
         //System.out.println(getString(allocate));
@@ -62,7 +69,7 @@ public class InternalRepetitionRemoverTest {
 
         rewindReaderIndexDocumentList(documents);
 
-        ByteBuffer scrubbedDictionary = dc.getScrubbedDictionary();
+        ByteBuffer scrubbedDictionary = dc.simpleScrubber(1);
         String scrubbedDictionaryStr = getString(scrubbedDictionary);
         //System.out.println(dc.usageAsString());
 
